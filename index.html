@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>家庭慢箋管理系統 v8</title>
+    <title>家庭慢箋管理系統 v9</title>
     <style>
         :root { --primary: #2c3e50; --accent: #3498db; --success: #27ae60; --danger: #e74c3c; --warning: #f39c12; --light: #f8f9fa; }
         body { font-family: "PingFang TC", "Microsoft JhengHei", sans-serif; background: #f0f2f5; color: #333; padding: 15px; max-width: 750px; margin: 0 auto; }
@@ -28,12 +28,11 @@
         .btn-edit { background: #546e7a; color: white; }
         .btn-del { background: var(--danger); color: white; }
         .edit-mode-box { background: #fdfdfd; border: 2px dashed var(--warning); padding: 15px; border-radius: 10px; }
-        .log-edit-item { display: flex; align-items: center; gap: 5px; margin-bottom: 5px; }
     </style>
 </head>
 <body>
 
-<h2>👨‍👩‍👧‍👦 家庭慢箋管理系統 v8</h2>
+<h2>👨‍👩‍👧‍👦 家庭慢箋管理系統 v9</h2>
 
 <div class="box">
     <div class="grid">
@@ -43,7 +42,7 @@
             <input type="text" id="medName" placeholder="藥名" style="margin-top:5px">
         </div>
         <div>
-            <label>模擬試算日期 (預設今天)</label>
+            <label>模擬試算日期</label>
             <input type="date" id="simDate">
         </div>
     </div>
@@ -65,62 +64,59 @@
 <div id="records"></div>
 
 <script>
-    let records = JSON.parse(localStorage.getItem("family_med_v8")) || [];
+    let records = JSON.parse(localStorage.getItem("family_med_v9")) || [];
     document.getElementById('startDate').valueAsDate = new Date();
     document.getElementById('simDate').valueAsDate = new Date();
 
-    // 🚀 改良版邏輯：逐次計算餘藥
-    function calculateSmart(r, targetDateStr) {
+    function calculatePerfect(r, targetDateStr) {
         const simDate = new Date(targetDateStr);
         simDate.setHours(0,0,0,0);
         
         const sortedLogs = [...r.logs].sort((a,b) => new Date(a) - new Date(b));
         const daysPerPack = r.days;
         
-        let handAmount = 0; // 當前手上剩餘天數
-        let lastUpdateDate = new Date(sortedLogs[0]);
-        lastUpdateDate.setHours(0,0,0,0);
+        let handAmount = 0; 
+        let lastDate = new Date(sortedLogs[0]);
+        lastDate.setHours(0,0,0,0);
 
-        // 模擬從第一次領藥到目標日期的每一天
-        // 或更簡單的：逐次領藥結算
+        // 1. 結算「手上餘藥」
         for(let i = 0; i < sortedLogs.length; i++) {
             const currentLogDate = new Date(sortedLogs[i]);
             currentLogDate.setHours(0,0,0,0);
 
             if (i > 0) {
-                // 在領這份藥之前，先消耗掉兩次領藥之間的天數
-                const gap = Math.floor((currentLogDate - lastUpdateDate) / (1000*60*60*24));
+                const gap = Math.floor((currentLogDate - lastDate) / (1000*60*60*24));
                 handAmount -= gap;
                 if (handAmount < 0) handAmount = 0;
             }
-            
-            // 領藥
             handAmount += daysPerPack;
-            lastUpdateDate = currentLogDate;
+            lastDate = currentLogDate;
         }
+        const finalGap = Math.floor((simDate - lastDate) / (1000*60*60*24)) + 1;
+        let finalHand = handAmount - finalGap;
+        if (finalHand < 0) finalHand = 0;
 
-        // 最後結算：從最後一次領藥日到「模擬試算日」經過幾天
-        const finalGap = Math.floor((simDate - lastUpdateDate) / (1000*60*60*24)) + 1; // 當天領算第1天
-        const finalHand = handRemain = handAmount - finalGap;
+        // 2. 結算「箋剩餘總量」
+        // 公式：手上餘藥 + 醫院還沒領的藥量
+        const uncollectedTimes = r.totalTimes - sortedLogs.length;
+        const totalRemain = finalHand + (uncollectedTimes * daysPerPack);
 
-        // 箋總剩餘量：(總量 - 從第一天起算天數)
+        // 3. 起迄日與狀態
         const firstStart = new Date(r.startDate);
-        const totalDiff = Math.floor((simDate - firstStart) / (1000*60*60*24)) + 1;
-        const totalRemain = (r.totalTimes * r.days) - totalDiff;
-
         const endDate = new Date(firstStart);
         endDate.setDate(endDate.getDate() + (r.totalTimes * r.days) - 1);
         const format = (d) => d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0');
 
         return {
-            hand: finalHand > 0 ? finalHand : 0,
-            total: totalRemain > 0 ? totalRemain : 0,
+            hand: finalHand,
+            total: totalRemain,
             range: `${format(firstStart)}-${format(endDate)}`,
-            isExpired: simDate > endDate,
+            isExpired: totalRemain <= 0 && simDate > endDate,
             count: sortedLogs.length
         };
     }
 
+    // --- 其餘功能函數保持不變 ---
     function runSimulation() {
         const r = {
             startDate: document.getElementById("startDate").value,
@@ -128,18 +124,14 @@
             totalTimes: parseInt(document.getElementById("totalTimes").value),
             logs: Array(parseInt(document.getElementById("usedTimes").value)).fill(document.getElementById("startDate").value)
         };
-        const res = calculateSmart(r, document.getElementById("simDate").value);
-        const div = document.getElementById("tempResult");
-        div.style.display = "block";
-        div.innerHTML = `<strong>試算結果：</strong> 手上餘藥 <span class="highlight">${res.hand}</span> 天 / 箋總剩餘 ${res.total} 天`;
+        const res = calculatePerfect(r, document.getElementById("simDate").value);
+        document.getElementById("tempResult").style.display = "block";
+        document.getElementById("tempResult").innerHTML = `<strong>試算：</strong> 手上餘藥 <span class="highlight">${res.hand}</span> 天 / 箋剩餘總量 <span class="highlight">${res.total}</span> 天`;
     }
 
     function saveRecord() {
         const start = document.getElementById("startDate").value;
         const used = parseInt(document.getElementById("usedTimes").value);
-        let logs = [];
-        for(let i=0; i<used; i++) logs.push(start);
-
         const record = {
             id: Date.now(),
             user: document.getElementById("userName").value || "本人",
@@ -147,21 +139,14 @@
             startDate: start,
             days: parseInt(document.getElementById("days").value),
             totalTimes: parseInt(document.getElementById("totalTimes").value),
-            logs: logs,
+            logs: Array(used).fill(start),
             isEditing: false
         };
         records.push(record);
         sync();
     }
 
-    function sync() { localStorage.setItem("family_med_v8", JSON.stringify(records)); renderRecords(); }
-
-    function addLog(id) {
-        const r = records.find(r => r.id === id);
-        if (r.logs.length >= r.totalTimes) return alert("次數已滿");
-        const date = prompt("領藥日期:", new Date().toISOString().split('T')[0]);
-        if (date) { r.logs.push(date); sync(); }
-    }
+    function sync() { localStorage.setItem("family_med_v9", JSON.stringify(records)); renderRecords(); }
 
     function renderRecords() {
         const container = document.getElementById("records");
@@ -170,54 +155,46 @@
         const sorted = [...records].sort((a,b) => new Date(b.startDate) - new Date(a.startDate));
 
         sorted.forEach(r => {
-            const calc = calculateSmart(r, simDateStr);
+            const calc = calculatePerfect(r, simDateStr);
             const div = document.createElement("div");
             div.className = "card";
             div.setAttribute("data-id", r.id);
 
             if (r.isEditing) {
-                let logsHtml = r.logs.map((d, i) => `
-                    <div class="log-edit-item">
-                        第${i+1}次: <input type="date" class="edit-log-date" value="${d}">
-                        <button onclick="this.parentElement.remove()">✕</button>
-                    </div>`).join('');
-                div.innerHTML = `
-                    <div class="edit-mode-box">
-                        <input type="text" class="edit-user" value="${r.user}">
-                        <input type="text" class="edit-med" value="${r.med}">
-                        <input type="date" class="edit-date" value="${r.startDate}">
-                        <input type="number" class="edit-days" value="${r.days}">
-                        <input type="number" class="edit-total" value="${r.totalTimes}">
-                        <div style="margin-top:10px">${logsHtml}</div>
-                        <div class="actions">
-                            <button class="btn-sm btn-save" onclick="updateRecord(${r.id})">儲存</button>
-                            <button class="btn-sm" onclick="toggleEdit(${r.id})">取消</button>
-                        </div>
-                    </div>`;
+                let logsHtml = r.logs.map((d, i) => `<div style="margin-bottom:5px">第${i+1}次: <input type="date" class="edit-log-date" value="${d}"> <button onclick="this.parentElement.remove()">✕</button></div>`).join('');
+                div.innerHTML = `<div class="edit-mode-box">
+                    <input type="text" class="edit-user" value="${r.user}"> <input type="text" class="edit-med" value="${r.med}">
+                    <input type="date" class="edit-date" value="${r.startDate}">
+                    單次天數: <input type="number" class="edit-days" value="${r.days}" style="width:60px">
+                    總次數: <input type="number" class="edit-total" value="${r.totalTimes}" style="width:60px">
+                    <div style="margin-top:10px">${logsHtml}</div>
+                    <div class="actions"><button class="btn-sm btn-save" onclick="updateRecord(${r.id})">儲存</button><button class="btn-sm" onclick="toggleEdit(${r.id})">取消</button></div>
+                </div>`;
             } else {
                 div.innerHTML = `
                     <div class="card-header">
                         <div><span class="user-tag">${r.user}</span> <b>${r.med}</b></div>
-                        <div>
-                            <button class="btn-sm btn-edit" onclick="toggleEdit(${r.id})">修改</button>
-                            <button class="btn-sm btn-del" onclick="deleteRecord(${r.id})">刪除</button>
-                        </div>
+                        <div><button class="btn-sm btn-edit" onclick="toggleEdit(${r.id})">修改</button><button class="btn-sm btn-del" onclick="deleteRecord(${r.id})">刪除</button></div>
                     </div>
                     <div class="info-grid">
                         <div class="full">🗓️ 起迄日：<b style="font-family:monospace">${calc.range}</b></div>
-                        <div class="full">📦 領藥紀錄：${r.logs.map(l=>`<span class="log-tag">${l}</span>`).join('')} 
-                            <button class="btn-sm" onclick="addLog(${r.id})">+ 領藥</button>
-                        </div>
+                        <div class="full">📦 領藥紀錄：${r.logs.map(l=>`<span class="log-tag">${l}</span>`).join('')} <button class="btn-sm" onclick="addLog(${r.id})">+ 領藥</button></div>
                         <div>🔁 進度：${calc.count} / ${r.totalTimes} 次</div>
                         <div>⏳ 狀態：${calc.isExpired ? '已結束' : '服用中'}</div>
                         <div class="highlight">🏠 手上餘藥：${calc.hand} 天</div>
-                        <div style="font-weight:bold; color:#666">📜 箋剩餘總量：${calc.total} 天</div>
+                        <div class="highlight" style="color:var(--primary)">📜 箋剩餘總量：${calc.total} 天</div>
                     </div>`;
             }
             container.appendChild(div);
         });
     }
 
+    function addLog(id) {
+        const r = records.find(r => r.id === id);
+        if (r.logs.length >= r.totalTimes) return alert("次數已滿");
+        const date = prompt("領藥日期:", new Date().toISOString().split('T')[0]);
+        if (date) { r.logs.push(date); sync(); }
+    }
     function updateRecord(id) {
         const card = document.querySelector(`[data-id="${id}"]`);
         const r = records.find(r => r.id === id);
