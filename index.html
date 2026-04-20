@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<title>慢箋年度餘藥試算</title>
+<style>
+body { font-family: sans-serif; padding: 20px; }
+input, button { margin: 5px 0; padding: 8px; width: 100%; }
+.result { margin-top: 15px; font-weight: bold; white-space: pre-line; }
+.card { border:1px solid #ccc; padding:10px; margin-top:10px; }
+</style>
+</head>
+<body>
+
+<h2>慢箋年度餘藥試算系統</h2>
+
+<label>今天日期</label>
+<input type="date" id="today">
+
+<label>前一張慢箋剩餘天數</label>
+<input type="number" id="prevRemain">
+
+<label>新慢箋開立日期</label>
+<input type="date" id="startDate">
+
+<label>每次天數</label>
+<input type="number" id="days">
+
+<label>總領藥次數</label>
+<input type="number" id="totalTimes">
+
+<label>已領次數</label>
+<input type="number" id="usedTimes">
+
+<button onclick="calculate()">試算</button>
+<button onclick="saveRecord()">儲存本次慢箋</button>
+
+<div class="result" id="result"></div>
+
+<h3>📊 本年度紀錄</h3>
+<div id="records"></div>
+
+<script>
+const year = new Date().getFullYear();
+let records = JSON.parse(localStorage.getItem("prescriptions")) || [];
+
+// 過濾今年資料
+records = records.filter(r => new Date(r.startDate).getFullYear() === year);
+localStorage.setItem("prescriptions", JSON.stringify(records));
+
+function calculate() {
+    const today = new Date(document.getElementById("today").value);
+    const prevRemain = parseInt(document.getElementById("prevRemain").value) || 0;
+    const startDate = new Date(document.getElementById("startDate").value);
+    const days = parseInt(document.getElementById("days").value);
+    const totalTimes = parseInt(document.getElementById("totalTimes").value);
+    const usedTimes = parseInt(document.getElementById("usedTimes").value);
+
+    if (!today || !startDate || isNaN(days) || isNaN(totalTimes) || isNaN(usedTimes)) {
+        document.getElementById("result").innerText = "請填寫完整資料";
+        return;
+    }
+
+    const newRemain = (totalTimes - usedTimes) * days;
+    const totalRemain = prevRemain + newRemain;
+
+    const expireDate = new Date(startDate);
+    expireDate.setDate(expireDate.getDate() + 90);
+
+    let msg = `
+📅 今天：${today.toLocaleDateString()}
+🧾 新慢箋剩餘天數：${newRemain}
+📦 總剩餘天數：${totalRemain}
+⏳ 有效期限：${expireDate.toLocaleDateString()}
+`;
+
+    if (today > expireDate) {
+        msg += "\n⚠️ 已過期（超過90天）";
+    } else {
+        msg += "\n✅ 尚未過期";
+    }
+
+    document.getElementById("result").innerText = msg;
+}
+
+function saveRecord() {
+    const startDate = document.getElementById("startDate").value;
+    const days = document.getElementById("days").value;
+    const totalTimes = document.getElementById("totalTimes").value;
+    const usedTimes = document.getElementById("usedTimes").value;
+
+    if (!startDate) {
+        alert("請先填寫資料");
+        return;
+    }
+
+    const record = {
+        startDate,
+        days,
+        totalTimes,
+        usedTimes,
+        logs: []
+    };
+
+    records.push(record);
+    localStorage.setItem("prescriptions", JSON.stringify(records));
+    renderRecords();
+}
+
+function addLog(index) {
+    const date = prompt("輸入領藥日期 (YYYY-MM-DD)");
+    if (!date) return;
+
+    records[index].logs.push(date);
+    localStorage.setItem("prescriptions", JSON.stringify(records));
+    renderRecords();
+}
+
+function renderRecords() {
+    const container = document.getElementById("records");
+    container.innerHTML = "";
+
+    records.forEach((r, i) => {
+        const div = document.createElement("div");
+        div.className = "card";
+        div.innerHTML = `
+📅 開立：${r.startDate}<br>
+📦 天數：${r.days}<br>
+🔁 領藥：${r.usedTimes}/${r.totalTimes}<br>
+📜 領藥紀錄：${r.logs.join(", ") || "無"}<br>
+<button onclick="addLog(${i})">＋新增領藥日期</button>
+        `;
+        container.appendChild(div);
+    });
+}
+
+renderRecords();
+</script>
+
+</body>
+</html>
