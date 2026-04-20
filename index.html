@@ -2,22 +2,65 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<title>慢箋年度餘藥試算</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>慢箋餘藥試算</title>
+
 <style>
-body { font-family: sans-serif; padding: 20px; }
-input, button { margin: 5px 0; padding: 8px; width: 100%; }
-.result { margin-top: 15px; font-weight: bold; white-space: pre-line; }
-.card { border:1px solid #ccc; padding:10px; margin-top:10px; }
+body {
+    font-family: -apple-system, BlinkMacSystemFont;
+    background: #f5f7fb;
+    padding: 15px;
+}
+
+.card {
+    background: white;
+    padding: 15px;
+    border-radius: 15px;
+    margin-bottom: 15px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.05);
+}
+
+h2 { margin-bottom: 10px; }
+
+input {
+    width: 100%;
+    padding: 12px;
+    margin: 8px 0;
+    border-radius: 10px;
+    border: 1px solid #ddd;
+    font-size: 16px;
+}
+
+button {
+    width: 100%;
+    padding: 14px;
+    margin-top: 10px;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+}
+
+.primary { background: #4CAF50; color: white; }
+.secondary { background: #2196F3; color: white; }
+
+.result {
+    font-size: 18px;
+    line-height: 1.6;
+}
+
+.small { font-size: 14px; color: gray; }
 </style>
 </head>
+
 <body>
 
-<h2>慢箋年度餘藥試算系統</h2>
+<div class="card">
+<h2>慢箋餘藥試算</h2>
 
 <label>今天日期</label>
 <input type="date" id="today">
 
-<label>前一張慢箋剩餘天數</label>
+<label>前一張剩餘天數</label>
 <input type="number" id="prevRemain">
 
 <label>新慢箋開立日期</label>
@@ -32,109 +75,72 @@ input, button { margin: 5px 0; padding: 8px; width: 100%; }
 <label>已領次數</label>
 <input type="number" id="usedTimes">
 
-<button onclick="calculate()">試算</button>
-<button onclick="saveRecord()">儲存本次慢箋</button>
+<button class="primary" onclick="calculate()">開始試算</button>
+<button class="secondary" onclick="save()">儲存</button>
 
 <div class="result" id="result"></div>
+</div>
 
+<div class="card">
 <h3>📊 本年度紀錄</h3>
 <div id="records"></div>
+</div>
 
 <script>
-const year = new Date().getFullYear();
-let records = JSON.parse(localStorage.getItem("prescriptions")) || [];
+// 自動填今天
+document.getElementById("today").valueAsDate = new Date();
 
-// 過濾今年資料
-records = records.filter(r => new Date(r.startDate).getFullYear() === year);
-localStorage.setItem("prescriptions", JSON.stringify(records));
+const year = new Date().getFullYear();
+let data = JSON.parse(localStorage.getItem("rx")) || [];
+data = data.filter(d => new Date(d.startDate).getFullYear() === year);
 
 function calculate() {
-    const today = new Date(document.getElementById("today").value);
-    const prevRemain = parseInt(document.getElementById("prevRemain").value) || 0;
-    const startDate = new Date(document.getElementById("startDate").value);
-    const days = parseInt(document.getElementById("days").value);
-    const totalTimes = parseInt(document.getElementById("totalTimes").value);
-    const usedTimes = parseInt(document.getElementById("usedTimes").value);
+    const today = new Date(todayInput.value);
+    const prev = parseInt(prevRemain.value) || 0;
+    const start = new Date(startDate.value);
+    const days = parseInt(daysInput.value);
+    const total = parseInt(totalTimes.value);
+    const used = parseInt(usedTimes.value);
 
-    if (!today || !startDate || isNaN(days) || isNaN(totalTimes) || isNaN(usedTimes)) {
-        document.getElementById("result").innerText = "請填寫完整資料";
-        return;
-    }
+    const remainNew = (total - used) * days;
+    const totalRemain = prev + remainNew;
 
-    const newRemain = (totalTimes - usedTimes) * days;
-    const totalRemain = prevRemain + newRemain;
-
-    const expireDate = new Date(startDate);
-    expireDate.setDate(expireDate.getDate() + 90);
+    const expire = new Date(start);
+    expire.setDate(expire.getDate() + 90);
 
     let msg = `
-📅 今天：${today.toLocaleDateString()}
-🧾 新慢箋剩餘天數：${newRemain}
-📦 總剩餘天數：${totalRemain}
-⏳ 有效期限：${expireDate.toLocaleDateString()}
+📦 新慢箋：${remainNew} 天  
+📊 總剩餘：${totalRemain} 天  
+⏳ 到期：${expire.toLocaleDateString()}
 `;
 
-    if (today > expireDate) {
-        msg += "\n⚠️ 已過期（超過90天）";
-    } else {
-        msg += "\n✅ 尚未過期";
-    }
+    msg += (today > expire) ? "\n⚠️ 已過期" : "\n✅ 可使用";
 
-    document.getElementById("result").innerText = msg;
+    result.innerText = msg;
 }
 
-function saveRecord() {
-    const startDate = document.getElementById("startDate").value;
-    const days = document.getElementById("days").value;
-    const totalTimes = document.getElementById("totalTimes").value;
-    const usedTimes = document.getElementById("usedTimes").value;
-
-    if (!startDate) {
-        alert("請先填寫資料");
-        return;
-    }
-
-    const record = {
-        startDate,
-        days,
-        totalTimes,
-        usedTimes,
-        logs: []
-    };
-
-    records.push(record);
-    localStorage.setItem("prescriptions", JSON.stringify(records));
-    renderRecords();
+function save() {
+    data.push({
+        startDate: startDate.value,
+        days: days.value,
+        total: totalTimes.value,
+        used: usedTimes.value
+    });
+    localStorage.setItem("rx", JSON.stringify(data));
+    render();
 }
 
-function addLog(index) {
-    const date = prompt("輸入領藥日期 (YYYY-MM-DD)");
-    if (!date) return;
-
-    records[index].logs.push(date);
-    localStorage.setItem("prescriptions", JSON.stringify(records));
-    renderRecords();
-}
-
-function renderRecords() {
-    const container = document.getElementById("records");
-    container.innerHTML = "";
-
-    records.forEach((r, i) => {
-        const div = document.createElement("div");
-        div.className = "card";
-        div.innerHTML = `
-📅 開立：${r.startDate}<br>
-📦 天數：${r.days}<br>
-🔁 領藥：${r.usedTimes}/${r.totalTimes}<br>
-📜 領藥紀錄：${r.logs.join(", ") || "無"}<br>
-<button onclick="addLog(${i})">＋新增領藥日期</button>
-        `;
-        container.appendChild(div);
+function render() {
+    records.innerHTML = "";
+    data.forEach(d => {
+        records.innerHTML += `
+        <div class="small">
+        📅 ${d.startDate}｜${d.used}/${d.total} 次
+        </div>`;
     });
 }
 
-renderRecords();
+render();
 </script>
 
 </body>
