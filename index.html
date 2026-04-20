@@ -1,147 +1,114 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>慢箋餘藥試算</title>
-
-<style>
-body {
-    font-family: -apple-system, BlinkMacSystemFont;
-    background: #f5f7fb;
-    padding: 15px;
-}
-
-.card {
-    background: white;
-    padding: 15px;
-    border-radius: 15px;
-    margin-bottom: 15px;
-    box-shadow: 0 3px 10px rgba(0,0,0,0.05);
-}
-
-h2 { margin-bottom: 10px; }
-
-input {
-    width: 100%;
-    padding: 12px;
-    margin: 8px 0;
-    border-radius: 10px;
-    border: 1px solid #ddd;
-    font-size: 16px;
-}
-
-button {
-    width: 100%;
-    padding: 14px;
-    margin-top: 10px;
-    border: none;
-    border-radius: 12px;
-    font-size: 16px;
-}
-
-.primary { background: #4CAF50; color: white; }
-.secondary { background: #2196F3; color: white; }
-
-.result {
-    font-size: 18px;
-    line-height: 1.6;
-}
-
-.small { font-size: 14px; color: gray; }
-</style>
-</head>
-
-<body>
-
-<div class="card">
-<h2>慢箋餘藥試算</h2>
-
-<label>今天日期</label>
-<input type="date" id="today">
-
-<label>前一張剩餘天數</label>
-<input type="number" id="prevRemain">
-
-<label>新慢箋開立日期</label>
-<input type="date" id="startDate">
-
-<label>每次天數</label>
-<input type="number" id="days">
-
-<label>總領藥次數</label>
-<input type="number" id="totalTimes">
-
-<label>已領次數</label>
-<input type="number" id="usedTimes">
-
-<button class="primary" onclick="calculate()">開始試算</button>
-<button class="secondary" onclick="save()">儲存</button>
-
-<div class="result" id="result"></div>
-</div>
-
-<div class="card">
-<h3>📊 本年度紀錄</h3>
-<div id="records"></div>
-</div>
-
 <script>
-// 自動填今天
+const result = document.getElementById("result");
+const records = document.getElementById("records");
+
 document.getElementById("today").valueAsDate = new Date();
 
 const year = new Date().getFullYear();
 let data = JSON.parse(localStorage.getItem("rx")) || [];
+
+// 只保留今年
 data = data.filter(d => new Date(d.startDate).getFullYear() === year);
 
-function calculate() {
-    const today = new Date(todayInput.value);
-    const prev = parseInt(prevRemain.value) || 0;
-    const start = new Date(startDate.value);
-    const days = parseInt(daysInput.value);
-    const total = parseInt(totalTimes.value);
-    const used = parseInt(usedTimes.value);
+// ⭐ 跨多張慢箋計算（核心）
+function getTotalRemain(today) {
+    let total = 0;
 
-    const remainNew = (total - used) * days;
-    const totalRemain = prev + remainNew;
+    data.forEach(d => {
+        const start = new Date(d.startDate);
+
+        // 計算是否過期（90天）
+        const expire = new Date(start);
+        expire.setDate(expire.getDate() + 90);
+
+        if (today > expire) return; // 已過期 → 不算
+
+        const remain = (d.total - d.used) * d.days;
+
+        if (remain > 0) {
+            total += remain;
+        }
+    });
+
+    return total;
+}
+
+function calculate() {
+    const today = new Date(document.getElementById("today").value);
+    const start = new Date(document.getElementById("startDate").value);
+    const days = parseInt(document.getElementById("days").value);
+    const total = parseInt(document.getElementById("totalTimes").value);
+    const used = parseInt(document.getElementById("usedTimes").value);
+
+    if (!start || isNaN(days) || isNaN(total) || isNaN(used)) {
+        result.innerText = "請填寫完整資料";
+        return;
+    }
+
+    const prevTotal = getTotalRemain(today); // ⭐ 所有有效慢箋總和
+    const newRemain = (total - used) * days;
+    const finalTotal = prevTotal + newRemain;
 
     const expire = new Date(start);
     expire.setDate(expire.getDate() + 90);
 
     let msg = `
-📦 新慢箋：${remainNew} 天  
-📊 總剩餘：${totalRemain} 天  
-⏳ 到期：${expire.toLocaleDateString()}
+📦 既有慢箋總剩餘：${prevTotal} 天  
+🆕 新慢箋：${newRemain} 天  
+📊 全部總剩餘：${finalTotal} 天  
+⏳ 新慢箋到期：${expire.toLocaleDateString()}
 `;
 
-    msg += (today > expire) ? "\n⚠️ 已過期" : "\n✅ 可使用";
+    msg += (today > expire) ? "\n⚠️ 新慢箋已過期" : "\n✅ 可使用";
 
     result.innerText = msg;
 }
 
 function save() {
-    data.push({
-        startDate: startDate.value,
-        days: days.value,
-        total: totalTimes.value,
-        used: usedTimes.value
-    });
+    const record = {
+        startDate: document.getElementById("startDate").value,
+        days: parseInt(document.getElementById("days").value),
+        total: parseInt(document.getElementById("totalTimes").value),
+        used: parseInt(document.getElementById("usedTimes").value)
+    };
+
+    if (!record.startDate) {
+        alert("請先填寫資料");
+        return;
+    }
+
+    data.push(record);
+    localStorage.setItem("rx", JSON.stringify(data));
+    render();
+}
+
+function deleteRecord(index) {
+    data.splice(index, 1);
     localStorage.setItem("rx", JSON.stringify(data));
     render();
 }
 
 function render() {
     records.innerHTML = "";
-    data.forEach(d => {
+
+    data.forEach((d, i) => {
+        const start = new Date(d.startDate);
+        const expire = new Date(start);
+        expire.setDate(expire.getDate() + 90);
+
+        const remain = (d.total - d.used) * d.days;
+        const isExpired = new Date() > expire;
+
         records.innerHTML += `
         <div class="small">
-        📅 ${d.startDate}｜${d.used}/${d.total} 次
-        </div>`;
+        📅 ${d.startDate}｜${d.used}/${d.total} 次  
+        📦 剩餘：${remain} 天  
+        ⏳ ${isExpired ? "⚠️已過期" : "有效中"}
+        <br>
+        <button onclick="deleteRecord(${i})" style="background:#ff5252;color:white;margin-top:5px;">刪除</button>
+        </div><br>`;
     });
 }
 
 render();
 </script>
-
-</body>
-</html>
