@@ -3,67 +3,95 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>家庭慢箋管理系統 v16</title>
+    <title>家庭慢箋管理系統 v17</title>
     <style>
-        :root { --primary: #2c3e50; --accent: #3498db; --success: #27ae60; --danger: #e74c3c; --warning: #f39c12; }
-        body { font-family: sans-serif; background: #f0f2f5; padding: 15px; max-width: 700px; margin: 0 auto; color: #333; }
-        .box { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        input { width: 100%; padding: 10px; margin: 5px 0 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
-        button { cursor: pointer; border: none; border-radius: 8px; padding: 12px; font-weight: bold; }
-        .btn-save { background: var(--success); color: white; width: 100%; }
-        .card { background: white; border-radius: 12px; padding: 18px; margin-bottom: 15px; border-left: 6px solid var(--accent); box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
-        .highlight { color: #d32f2f; font-weight: bold; font-size: 1.1em; }
-        .info { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.95em; }
-        .full { grid-column: span 2; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 5px; display: flex; justify-content: space-between; align-items: center; }
-        .edit-box { background: #fffcf0; border: 2px dashed var(--warning); padding: 15px; border-radius: 10px; }
+        :root { --primary: #2c3e50; --accent: #3498db; --success: #27ae60; --danger: #e74c3c; --warning: #f39c12; --light: #f8f9fa; }
+        body { font-family: "PingFang TC", "Microsoft JhengHei", sans-serif; background: #f0f2f5; color: #333; padding: 15px; max-width: 600px; margin: 0 auto; }
+        h2 { text-align: center; color: var(--primary); margin-bottom: 20px; }
+        /* 輸入區樣式 */
+        .box { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 8px 20px rgba(0,0,0,0.08); margin-bottom: 25px; border: 1px solid #eee; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        label { display: block; margin-top: 8px; font-weight: bold; font-size: 0.85em; color: #666; }
+        input { width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 16px; transition: border 0.3s; }
+        input:focus { border-color: var(--accent); outline: none; }
+        .btn-row { display: flex; gap: 10px; margin-top: 20px; }
+        button { flex: 1; cursor: pointer; border: none; border-radius: 10px; padding: 12px; font-weight: bold; font-size: 15px; transition: opacity 0.2s; }
+        button:active { opacity: 0.7; }
+        .btn-calc { background: var(--accent); color: white; }
+        .btn-save { background: var(--success); color: white; }
+        
+        /* 卡片樣式 (改回您喜愛的樣式) */
+        .card { background: white; border-radius: 20px; padding: 20px; margin-bottom: 20px; border-left: 8px solid var(--accent); box-shadow: 0 4px 15px rgba(0,0,0,0.05); position: relative; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .user-tag { background: var(--primary); color: white; padding: 4px 14px; border-radius: 25px; font-size: 0.85em; font-weight: bold; margin-right: 8px; }
+        .med-name { font-size: 1.1em; font-weight: bold; color: #333; }
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 1.05em; line-height: 1.6; }
+        .full { grid-column: span 2; border-bottom: 1px solid #f0f0f0; padding-bottom: 8px; margin-bottom: 2px; }
+        .highlight { color: #d32f2f; font-weight: bold; }
+        .status-badge { background: #e8f5e9; color: #2e7d32; padding: 3px 10px; border-radius: 6px; font-size: 0.9em; font-weight: bold; }
+        .log-tag { background: #f0f0f0; padding: 2px 8px; border-radius: 6px; font-size: 0.85em; margin-right: 5px; color: #555; border: 1px solid #ddd; }
+        
+        /* 修改與刪除按鈕 */
+        .btn-edit { background: #607d8b; color: white; padding: 6px 12px; border-radius: 8px; font-size: 0.85em; margin-right: 5px; }
+        .btn-del { background: var(--danger); color: white; padding: 6px 12px; border-radius: 8px; font-size: 0.85em; }
+        .btn-add-log { background: #e3f2fd; color: #1976d2; padding: 4px 10px; border-radius: 8px; font-size: 0.85em; margin-left: 5px; }
+
+        /* 編輯模式區塊 */
+        .edit-mode { background: #fffdf7; border: 2px dashed var(--warning); padding: 15px; border-radius: 15px; margin-top: 10px; }
     </style>
 </head>
 <body>
 
-<h2>👨‍👩‍👧‍👦 家庭慢箋管理 v16</h2>
+<h2>👨‍👩‍👧‍👦 家庭慢箋管理系統 v17</h2>
 
 <div class="box">
     <div class="grid">
-        <div><label>藥名</label><input type="text" id="medName" value="過敏藥"></div>
-        <div><label>試算日期</label><input type="date" id="simDate" value="2026-03-13"></div>
+        <div><label>對象 / 藥名</label>
+            <input type="text" id="userName" placeholder="對象 (如:本人)" value="本人">
+            <input type="text" id="medName" placeholder="藥名" value="過敏藥" style="margin-top:8px">
+        </div>
+        <div><label>模擬試算日期 (今天)</label><input type="date" id="simDate"></div>
     </div>
     <div class="grid">
         <div><label>第1次領藥日</label><input type="date" id="startDate" value="2025-12-16"></div>
-        <div><label>單次天數</label><input type="number" id="days" value="30"></div>
+        <div><label>單次開立天數</label><input type="number" id="days" value="30"></div>
     </div>
     <div class="grid">
-        <div><label>總次數</label><input type="number" id="totalTimes" value="3"></div>
-        <div><label>已領次數</label><input type="number" id="usedTimes" value="3"></div>
+        <div><label>總領藥次數</label><input type="number" id="totalTimes" value="3"></div>
+        <div><label>初始已領次數</label><input type="number" id="usedTimes" value="3"></div>
     </div>
-    <button class="btn-save" onclick="saveRecord()">💾 儲存並查看結果</button>
+    <div class="btn-row">
+        <button class="btn-calc" onclick="render()">🧪 僅試算不儲存</button>
+        <button class="btn-save" onclick="saveRecord()">💾 儲存紀錄</button>
+    </div>
 </div>
 
 <div id="records"></div>
 
 <script>
-    let records = JSON.parse(localStorage.getItem("med_v16")) || [];
+    let records = JSON.parse(localStorage.getItem("med_v17")) || [];
+    document.getElementById('simDate').valueAsDate = new Date(); // 預設為電腦今天
 
+    // 紅筆邏輯核心算式
     function calculate(r, simDateStr) {
         const today = new Date(simDateStr); today.setHours(0,0,0,0);
         const start = new Date(r.startDate); start.setHours(0,0,0,0);
         
-        // 經過天數 (含當天)
+        // 1. 計算第一天到今天經過了幾天 (包含開立當天)
         const diffDays = Math.floor((today - start) / (1000 * 60 * 60 * 24)) + 1;
 
-        // 手上餘藥 = (已領次數 * 天數) - 經過天數
+        // 2. 手上餘藥 = (已領次數 * 天數) - 經過天數
         let hand = (r.logs.length * r.days) - diffDays;
         
-        // 慢箋剩餘總量 = 根據您截圖紅筆修正，若進度 3/3 且藥快吃完，顯示剩餘藥量天數
-        // 邏輯：(總次數 * 天數) - 經過天數
-        let total = (r.totalTimes * r.days) - diffDays;
+        // 3. 慢箋剩餘總量 = (總次數 * 天數) - 經過天數 (若超過90天則為0)
+        let total = (diffDays > 90) ? 0 : (r.totalTimes * r.days) - diffDays;
 
         const format = (d) => d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0');
         const endDay = new Date(start); endDay.setDate(endDay.getDate() + 89);
 
         return {
-            hand: hand < 0 ? 0 : hand,
-            total: total < 0 ? 0 : total,
+            hand: Math.max(0, hand),
+            total: Math.max(0, total),
             range: `${format(start)}-${format(endDay)}`,
             isExpired: diffDays > 90
         };
@@ -76,6 +104,7 @@
         for(let i=0; i<used; i++) logs.push(start);
         records.push({
             id: Date.now(),
+            user: document.getElementById("userName").value,
             med: document.getElementById("medName").value,
             startDate: start,
             days: parseInt(document.getElementById("days").value),
@@ -83,42 +112,51 @@
             logs: logs,
             isEditing: false
         });
-        render();
+        sync();
     }
 
+    function sync() { localStorage.setItem("med_v17", JSON.stringify(records)); render(); }
+
     function render() {
-        localStorage.setItem("med_v16", JSON.stringify(records));
         const container = document.getElementById("records");
         container.innerHTML = "";
         const sim = document.getElementById("simDate").value;
 
-        records.forEach(r => {
+        [...records].sort((a,b) => b.id - a.id).forEach(r => {
             const res = calculate(r, sim);
             const div = document.createElement("div");
             div.className = "card";
             
             if (r.isEditing) {
-                div.innerHTML = `<div class="edit-box">
-                    <input type="text" id="ed-med-${r.id}" value="${r.med}">
-                    <input type="date" id="ed-start-${r.id}" value="${r.startDate}">
-                    <input type="number" id="ed-days-${r.id}" value="${r.days}">
+                div.innerHTML = `
+                <div class="edit-mode">
+                    <label>對象/藥名</label>
+                    <div class="grid"><input type="text" id="ed-user-${r.id}" value="${r.user}"><input type="text" id="ed-med-${r.id}" value="${r.med}"></div>
+                    <label>開立日/單次天數</label>
+                    <div class="grid"><input type="date" id="ed-start-${r.id}" value="${r.startDate}"><input type="number" id="ed-days-${r.id}" value="${r.days}"></div>
+                    <label>總次數</label>
                     <input type="number" id="ed-total-${r.id}" value="${r.totalTimes}">
-                    <button class="btn-save" onclick="updateRecord(${r.id})">儲存</button>
+                    <button class="btn-save" onclick="updateRecord(${r.id})">儲存修改</button>
+                    <button onclick="toggleEdit(${r.id})" style="width:100%; margin-top:8px; background:#ddd">取消</button>
                 </div>`;
             } else {
                 div.innerHTML = `
-                <div class="info">
-                    <div class="full"><b>${r.med}</b> 
-                        <div>
-                            <button onclick="toggleEdit(${r.id})">修改</button>
-                            <button onclick="deleteRec(${r.id})">刪除</button>
-                        </div>
+                <div class="card-header">
+                    <div><span class="user-tag">${r.user}</span><span class="med-name">${r.med}</span></div>
+                    <div>
+                        <button class="btn-edit" onclick="toggleEdit(${r.id})">修改</button>
+                        <button class="btn-del" onclick="deleteRec(${r.id})">刪除</button>
                     </div>
-                    <div class="full">📅 起迄：${res.range}</div>
-                    <div class="full">📦 進度：${r.logs.length} / ${r.totalTimes} 次</div>
+                </div>
+                <div class="info-grid">
+                    <div class="full">🗓️ 起迄日：<b style="font-family:monospace">${res.range}</b></div>
+                    <div class="full">📦 領藥紀錄：${r.logs.map(l=>`<span class="log-tag">${l}</span>`).join('')} 
+                        <button class="btn-add-log" onclick="addLog(${r.id})">+ 領藥</button>
+                    </div>
+                    <div>🔁 進度：${r.logs.length} / ${r.totalTimes} 次</div>
+                    <div>⏳ 狀態：<span class="status-badge">${res.isExpired ? '已結束' : '服用中'}</span></div>
                     <div class="highlight">🏠 手上餘藥：${res.hand} 天</div>
-                    <div style="font-weight:bold">📜 慢箋剩餘總量：${res.total} 天</div>
-                    <div class="full">狀態：服用中</div>
+                    <div style="font-weight:bold; color:#666">📜 慢箋剩餘總量：${res.total} 天</div>
                 </div>`;
             }
             container.appendChild(div);
@@ -126,22 +164,30 @@
     }
 
     function toggleEdit(id) {
-        const r = records.find(rec => rec.id === id);
-        r.isEditing = !r.isEditing;
+        records.forEach(r => { if(r.id === id) r.isEditing = !r.isEditing; });
         render();
     }
 
     function updateRecord(id) {
         const r = records.find(rec => rec.id === id);
+        r.user = document.getElementById(`ed-user-${id}`).value;
         r.med = document.getElementById(`ed-med-${id}`).value;
         r.startDate = document.getElementById(`ed-start-${id}`).value;
         r.days = parseInt(document.getElementById(`ed-days-${id}`).value);
         r.totalTimes = parseInt(document.getElementById(`ed-total-${id}`).value);
         r.isEditing = false;
-        render();
+        sync();
     }
 
-    function deleteRec(id) { records = records.filter(r => r.id !== id); render(); }
+    function addLog(id) {
+        const r = records.find(rec => rec.id === id);
+        if (r.logs.length >= r.totalTimes) return alert("領藥次數已滿");
+        r.logs.push(document.getElementById("simDate").value);
+        sync();
+    }
+
+    function deleteRec(id) { if(confirm("確定刪除此紀錄？")) { records = records.filter(r => r.id !== id); sync(); } }
+    
     render();
 </script>
 </body>
