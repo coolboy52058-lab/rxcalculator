@@ -1,37 +1,50 @@
-<script>
-const result = document.getElementById("result");
-const records = document.getElementById("records");
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>慢箋餘藥試算</title>
 
-document.getElementById("today").valueAsDate = new Date();
-
-const year = new Date().getFullYear();
-let data = JSON.parse(localStorage.getItem("rx")) || [];
-
-// 只保留今年
-data = data.filter(d => new Date(d.startDate).getFullYear() === year);
-
-// ⭐ 跨多張慢箋計算（核心）
-function getTotalRemain(today) {
-    let total = 0;
-
-    data.forEach(d => {
-        const start = new Date(d.startDate);
-
-        // 計算是否過期（90天）
-        const expire = new Date(start);
-        expire.setDate(expire.getDate() + 90);
-
-        if (today > expire) return; // 已過期 → 不算
-
-        const remain = (d.total - d.used) * d.days;
-
-        if (remain > 0) {
-            total += remain;
-        }
-    });
-
-    return total;
+<style>
+body {
+    font-family: -apple-system, BlinkMacSystemFont;
+    background: #f5f7fb;
+    padding: 15px;
 }
+.card {
+    background: white;
+    padding: 15px;
+    border-radius: 15px;
+    margin-bottom: 15px;
+}
+input, button {
+    width: 100%;
+    padding: 12px;
+    margin: 8px 0;
+    border-radius: 10px;
+}
+.primary { background: #4CAF50; color: white; }
+</style>
+</head>
+
+<body>
+
+<div class="card">
+<h2>慢箋餘藥試算</h2>
+
+<input type="date" id="today">
+<input type="date" id="startDate">
+<input type="number" id="days" placeholder="每次天數">
+<input type="number" id="totalTimes" placeholder="總領藥次數">
+<input type="number" id="usedTimes" placeholder="已領次數">
+
+<button class="primary" onclick="calculate()">試算</button>
+
+<div id="result"></div>
+</div>
+
+<script>
+document.getElementById("today").valueAsDate = new Date();
 
 function calculate() {
     const today = new Date(document.getElementById("today").value);
@@ -41,74 +54,25 @@ function calculate() {
     const used = parseInt(document.getElementById("usedTimes").value);
 
     if (!start || isNaN(days) || isNaN(total) || isNaN(used)) {
-        result.innerText = "請填寫完整資料";
+        document.getElementById("result").innerText = "請填寫完整資料";
         return;
     }
 
-    const prevTotal = getTotalRemain(today); // ⭐ 所有有效慢箋總和
-    const newRemain = (total - used) * days;
-    const finalTotal = prevTotal + newRemain;
+    const remain = (total - used) * days;
 
     const expire = new Date(start);
     expire.setDate(expire.getDate() + 90);
 
     let msg = `
-📦 既有慢箋總剩餘：${prevTotal} 天  
-🆕 新慢箋：${newRemain} 天  
-📊 全部總剩餘：${finalTotal} 天  
-⏳ 新慢箋到期：${expire.toLocaleDateString()}
+剩餘：${remain} 天
+到期：${expire.toLocaleDateString()}
 `;
 
-    msg += (today > expire) ? "\n⚠️ 新慢箋已過期" : "\n✅ 可使用";
+    msg += (today > expire) ? "\n⚠️ 已過期" : "\n✅ 可使用";
 
-    result.innerText = msg;
+    document.getElementById("result").innerText = msg;
 }
-
-function save() {
-    const record = {
-        startDate: document.getElementById("startDate").value,
-        days: parseInt(document.getElementById("days").value),
-        total: parseInt(document.getElementById("totalTimes").value),
-        used: parseInt(document.getElementById("usedTimes").value)
-    };
-
-    if (!record.startDate) {
-        alert("請先填寫資料");
-        return;
-    }
-
-    data.push(record);
-    localStorage.setItem("rx", JSON.stringify(data));
-    render();
-}
-
-function deleteRecord(index) {
-    data.splice(index, 1);
-    localStorage.setItem("rx", JSON.stringify(data));
-    render();
-}
-
-function render() {
-    records.innerHTML = "";
-
-    data.forEach((d, i) => {
-        const start = new Date(d.startDate);
-        const expire = new Date(start);
-        expire.setDate(expire.getDate() + 90);
-
-        const remain = (d.total - d.used) * d.days;
-        const isExpired = new Date() > expire;
-
-        records.innerHTML += `
-        <div class="small">
-        📅 ${d.startDate}｜${d.used}/${d.total} 次  
-        📦 剩餘：${remain} 天  
-        ⏳ ${isExpired ? "⚠️已過期" : "有效中"}
-        <br>
-        <button onclick="deleteRecord(${i})" style="background:#ff5252;color:white;margin-top:5px;">刪除</button>
-        </div><br>`;
-    });
-}
-
-render();
 </script>
+
+</body>
+</html>
