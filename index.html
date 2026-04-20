@@ -1,52 +1,62 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-<meta charset="UTF-8">
-<title>慢箋年度餘藥試算</title>
-<style>
-body { font-family: sans-serif; padding: 20px; }
-input, button { margin: 5px 0; padding: 8px; width: 100%; }
-.result { margin-top: 15px; font-weight: bold; white-space: pre-line; }
-.card { border:1px solid #ccc; padding:10px; margin-top:10px; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>慢箋年度管理助手</title>
+    <style>
+        :root { --primary: #2c3e50; --accent: #3498db; --danger: #e74c3c; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f4f7f6; color: #333; line-height: 1.6; padding: 20px; max-width: 600px; margin: 0 auto; }
+        h2, h3 { color: var(--primary); text-align: center; }
+        .input-group { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        label { display: block; margin-top: 10px; font-weight: bold; font-size: 0.9em; }
+        input { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        button { cursor: pointer; border: none; border-radius: 6px; padding: 12px; transition: 0.3s; width: 100%; margin-top: 10px; font-weight: bold; }
+        .btn-calc { background: var(--accent); color: white; }
+        .btn-save { background: #27ae60; color: white; }
+        .btn-del { background: var(--danger); color: white; padding: 5px 10px; width: auto; font-size: 0.8em; }
+        .result { background: #e8f4fd; border-left: 5px solid var(--accent); padding: 15px; margin-top: 15px; border-radius: 4px; white-space: pre-line; }
+        .card { background: white; border-radius: 10px; padding: 15px; margin-top: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); position: relative; }
+        .badge { background: #eee; padding: 2px 8px; border-radius: 10px; font-size: 0.8em; }
+    </style>
 </head>
 <body>
 
-<h2>慢箋年度餘藥試算系統</h2>
+<h2>💊 慢箋年度餘藥試算</h2>
 
-<label>今天日期</label>
-<input type="date" id="today">
+<div class="input-group">
+    <label>今天日期</label>
+    <input type="date" id="today">
 
-<label>前一張慢箋剩餘天數</label>
-<input type="number" id="prevRemain">
+    <label>前一張慢箋剩餘天數 (上期結餘)</label>
+    <input type="number" id="prevRemain" placeholder="例：5" value="0">
 
-<label>新慢箋開立日期</label>
-<input type="date" id="startDate">
+    <label>新慢箋開立日期 (第 1 次領藥日)</label>
+    <input type="date" id="startDate">
 
-<label>每次天數</label>
-<input type="number" id="days">
+    <label>單次天數 (通常為 28 或 30)</label>
+    <input type="number" id="days" value="28">
 
-<label>總領藥次數</label>
-<input type="number" id="totalTimes">
+    <label>總領藥次數 (通常為 3)</label>
+    <input type="number" id="totalTimes" value="3">
 
-<label>已領次數</label>
-<input type="number" id="usedTimes">
+    <label>已領次數</label>
+    <input type="number" id="usedTimes" value="1">
 
-<button onclick="calculate()">試算</button>
-<button onclick="saveRecord()">儲存本次慢箋</button>
+    <button class="btn-calc" onclick="calculate()">🔍 開始試算</button>
+    <button class="btn-save" onclick="saveRecord()">💾 儲存此慢箋紀錄</button>
+</div>
 
-<div class="result" id="result"></div>
+<div class="result" id="result">請輸入資料後點擊試算</div>
 
-<h3>📊 本年度紀錄</h3>
+<h3>📊 年度存檔紀錄</h3>
 <div id="records"></div>
 
 <script>
+// 初始化設定
+document.getElementById('today').valueAsDate = new Date();
 const year = new Date().getFullYear();
 let records = JSON.parse(localStorage.getItem("prescriptions")) || [];
-
-// 過濾今年資料
-records = records.filter(r => new Date(r.startDate).getFullYear() === year);
-localStorage.setItem("prescriptions", JSON.stringify(records));
 
 function calculate() {
     const today = new Date(document.getElementById("today").value);
@@ -56,49 +66,44 @@ function calculate() {
     const totalTimes = parseInt(document.getElementById("totalTimes").value);
     const usedTimes = parseInt(document.getElementById("usedTimes").value);
 
-    if (!today || !startDate || isNaN(days) || isNaN(totalTimes) || isNaN(usedTimes)) {
-        document.getElementById("result").innerText = "請填寫完整資料";
+    if (isNaN(startDate.getTime())) {
+        alert("請選擇開立日期");
         return;
     }
 
-    const newRemain = (totalTimes - usedTimes) * days;
-    const totalRemain = prevRemain + newRemain;
+    // 計算剩餘天數 (總次數 - 已領次數 = 剩餘未領次數)
+    // 總剩餘 = (剩餘未領 * 單次天數) + (當次已領但還沒吃完的天數)
+    // 簡化逻辑：總天數 (totalTimes * days) - 從開立日到今天經過的天數 + 初始剩餘
+    const diffTime = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
+    const currentInventory = (usedTimes * days) - diffTime + prevRemain;
+    const futureDays = (totalTimes - usedTimes) * days;
+    const totalFutureBalance = currentInventory + futureDays;
 
     const expireDate = new Date(startDate);
-    expireDate.setDate(expireDate.getDate() + 90);
+    expireDate.setDate(expireDate.getDate() + (totalTimes * days));
 
-    let msg = `
-📅 今天：${today.toLocaleDateString()}
-🧾 新慢箋剩餘天數：${newRemain}
-📦 總剩餘天數：${totalRemain}
-⏳ 有效期限：${expireDate.toLocaleDateString()}
-`;
-
-    if (today > expireDate) {
-        msg += "\n⚠️ 已過期（超過90天）";
-    } else {
-        msg += "\n✅ 尚未過期";
-    }
+    let status = today > expireDate ? "⚠️ 已過期" : "✅ 效期內";
+    
+    let msg = `📅 狀態日期：${today.toLocaleDateString()}
+🏠 目前手上剩餘：${currentInventory > 0 ? currentInventory : 0} 天
+💊 本箋剩餘總量：${totalFutureBalance} 天 (含未領)
+⏳ 預計吃完日期：${expireDate.toLocaleDateString()}
+📌 狀態：${status}`;
 
     document.getElementById("result").innerText = msg;
+    return { currentInventory, totalFutureBalance, expireDate };
 }
 
 function saveRecord() {
     const startDate = document.getElementById("startDate").value;
-    const days = document.getElementById("days").value;
-    const totalTimes = document.getElementById("totalTimes").value;
-    const usedTimes = document.getElementById("usedTimes").value;
-
-    if (!startDate) {
-        alert("請先填寫資料");
-        return;
-    }
+    if (!startDate) return alert("請先輸入資料");
 
     const record = {
+        id: Date.now(),
         startDate,
-        days,
-        totalTimes,
-        usedTimes,
+        days: document.getElementById("days").value,
+        totalTimes: document.getElementById("totalTimes").value,
+        usedTimes: document.getElementById("usedTimes").value,
         logs: []
     };
 
@@ -107,11 +112,9 @@ function saveRecord() {
     renderRecords();
 }
 
-function addLog(index) {
-    const date = prompt("輸入領藥日期 (YYYY-MM-DD)");
-    if (!date) return;
-
-    records[index].logs.push(date);
+function deleteRecord(id) {
+    if(!confirm("確定要刪除這筆紀錄嗎？")) return;
+    records = records.filter(r => r.id !== id);
     localStorage.setItem("prescriptions", JSON.stringify(records));
     renderRecords();
 }
@@ -120,15 +123,14 @@ function renderRecords() {
     const container = document.getElementById("records");
     container.innerHTML = "";
 
-    records.forEach((r, i) => {
+    records.forEach((r) => {
         const div = document.createElement("div");
         div.className = "card";
         div.innerHTML = `
-📅 開立：${r.startDate}<br>
-📦 天數：${r.days}<br>
-🔁 領藥：${r.usedTimes}/${r.totalTimes}<br>
-📜 領藥紀錄：${r.logs.join(", ") || "無"}<br>
-<button onclick="addLog(${i})">＋新增領藥日期</button>
+            <button class="btn-del" style="float:right" onclick="deleteRecord(${r.id})">刪除</button>
+            <b>📅 開立日：</b>${r.startDate}<br>
+            <b>📦 配置：</b>${r.days}天 × ${r.totalTimes}次<br>
+            <b>🔁 進度：</b>第 ${r.usedTimes} 次 <span class="badge">${Math.round((r.usedTimes/r.totalTimes)*100)}%</span>
         `;
         container.appendChild(div);
     });
