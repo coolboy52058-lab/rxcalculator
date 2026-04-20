@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>家庭慢箋管理系統 v9</title>
+    <title>家庭慢箋管理系統 v11</title>
     <style>
         :root { --primary: #2c3e50; --accent: #3498db; --success: #27ae60; --danger: #e74c3c; --warning: #f39c12; --light: #f8f9fa; }
         body { font-family: "PingFang TC", "Microsoft JhengHei", sans-serif; background: #f0f2f5; color: #333; padding: 15px; max-width: 750px; margin: 0 auto; }
@@ -26,17 +26,14 @@
         .expired { background: #ffebee; color: #c62828; }
         .active { background: #e8f5e9; color: #2e7d32; }
         .log-tag { display: inline-block; background: #eee; padding: 2px 6px; border-radius: 4px; margin-right: 5px; font-size: 0.8em; margin-top: 5px; }
-        .actions { margin-top: 15px; display: flex; gap: 10px; justify-content: flex-end; }
-        .btn-sm { padding: 6px 12px; font-size: 0.85em; width: auto; flex: none; }
-        .btn-edit { background: #546e7a; color: white; }
-        .btn-del { background: var(--danger); color: white; }
+        .btn-sm { padding: 6px 12px; font-size: 0.85em; width: auto; flex: none; cursor: pointer; }
         .edit-mode-box { background: #fdfdfd; border: 2px dashed var(--warning); padding: 15px; border-radius: 10px; }
         .log-edit-item { display: flex; align-items: center; gap: 5px; margin-bottom: 5px; }
     </style>
 </head>
 <body>
 
-<h2>👨‍👩‍👧‍👦 家庭慢箋管理系統 v9</h2>
+<h2>👨‍👩‍👧‍👦 家庭慢箋管理系統 v11</h2>
 
 <div class="box">
     <div class="grid">
@@ -46,7 +43,7 @@
             <input type="text" id="medName" placeholder="藥名" style="margin-top:5px">
         </div>
         <div>
-            <label>模擬試算日期</label>
+            <label>模擬試算日期 (預設今天)</label>
             <input type="date" id="simDate">
         </div>
     </div>
@@ -68,62 +65,59 @@
 <div id="records"></div>
 
 <script>
-    let records = JSON.parse(localStorage.getItem("family_med_v9")) || [];
+    let records = JSON.parse(localStorage.getItem("family_med_v11")) || [];
     document.getElementById('startDate').valueAsDate = new Date();
     document.getElementById('simDate').valueAsDate = new Date();
 
     function calculateSmart(r, targetDateStr) {
         const simDate = new Date(targetDateStr);
         simDate.setHours(0,0,0,0);
+        const start = new Date(r.startDate);
+        start.setHours(0,0,0,0);
         
-        const sortedLogs = [...r.logs].sort((a,b) => new Date(a) - new Date(b));
-        const daysPerPack = r.days;
-        
-        // 1. 計算手上餘藥 (段落累計法)
+        // 1. 手上餘藥 (段落累計法)
         let handAmount = 0;
-        let lastUpdateDate = new Date(sortedLogs[0]);
-        lastUpdateDate.setHours(0,0,0,0);
+        const sortedLogs = [...r.logs].sort((a,b) => new Date(a) - new Date(b));
+        let lastDate = new Date(sortedLogs[0]);
+        lastDate.setHours(0,0,0,0);
 
-        for(let i = 0; i < sortedLogs.length; i++) {
-            const currentLogDate = new Date(sortedLogs[i]);
-            currentLogDate.setHours(0,0,0,0);
-            if (i > 0) {
-                const gap = Math.floor((currentLogDate - lastUpdateDate) / (1000*60*60*24));
-                handAmount -= gap;
-                if (handAmount < 0) handAmount = 0;
+        for(let i=0; i<sortedLogs.length; i++){
+            const current = new Date(sortedLogs[i]);
+            current.setHours(0,0,0,0);
+            if(i>0){
+                handAmount -= Math.floor((current - lastDate)/(1000*60*60*24));
+                if(handAmount < 0) handAmount = 0;
             }
-            handAmount += daysPerPack;
-            lastUpdateDate = currentLogDate;
+            handAmount += r.days;
+            lastDate = current;
         }
-        const finalGap = Math.floor((simDate - lastUpdateDate) / (1000*60*60*24)) + 1;
-        const finalHand = handAmount - finalGap;
+        // 從最後一次領藥到模擬日的天數 (領藥當天算第1天)
+        const gapToSim = Math.floor((simDate - lastDate)/(1000*60*60*24)) + 1;
+        const finalHand = handAmount - gapToSim;
 
-        // 2. 法律效期判定 (開立日 + 90天)
-        const firstStart = new Date(r.startDate);
-        firstStart.setHours(0,0,0,0);
-        const daysFromStart = Math.floor((simDate - firstStart) / (1000*60*60*24)) + 1;
-        
-        const isLawExpired = daysFromStart > 90; // 超過 90 天即過期
+        // 2. 法律過期判定 (開立日 + 90天)
+        // 第 90 天是最後一天，第 91 天(>90)即失效
+        const diffTime = simDate.getTime() - start.getTime();
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+        const isLawExpired = diffDays > 90;
 
-        // 3. 箋剩餘總量：若法律過期則為0，否則計算剩餘天數
+        // 3. 箋剩餘總量
         let totalRemain = 0;
         if (!isLawExpired) {
-            totalRemain = (r.totalTimes * r.days) - daysFromStart;
+            const timesLeft = r.totalTimes - sortedLogs.length;
+            totalRemain = timesLeft > 0 ? timesLeft * r.days : 0;
         }
 
-        // 4. 起迄日與狀態
-        const endDate = new Date(firstStart);
-        endDate.setDate(endDate.getDate() + (r.totalTimes * r.days) - 1);
         const format = (d) => d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0');
-
-        let statusText = isLawExpired ? "慢箋已過期" : (finalHand > 0 ? "服用中" : "藥已用罄");
+        const endDate = new Date(start);
+        endDate.setDate(endDate.getDate() + (r.totalTimes * r.days) - 1);
 
         return {
             hand: finalHand > 0 ? finalHand : 0,
-            total: totalRemain > 0 ? totalRemain : 0,
-            range: `${format(firstStart)}-${format(endDate)}`,
+            total: totalRemain,
             isLawExpired: isLawExpired,
-            statusText: statusText,
+            status: isLawExpired ? "慢箋已過期" : (finalHand > 0 ? "服用中" : "藥已用罄"),
+            range: `${format(start)}-${format(endDate)}`,
             count: sortedLogs.length
         };
     }
@@ -135,71 +129,84 @@
             totalTimes: parseInt(document.getElementById("totalTimes").value),
             logs: Array(parseInt(document.getElementById("usedTimes").value)).fill(document.getElementById("startDate").value)
         };
+        if(!r.startDate) return;
         const res = calculateSmart(r, document.getElementById("simDate").value);
         const div = document.getElementById("tempResult");
         div.style.display = "block";
-        div.innerHTML = `<strong>試算結果：</strong> 手上餘藥 <span class="highlight">${res.hand}</span> 天 / 箋剩餘總量 ${res.total} 天 <br> 狀態：${res.statusText}`;
+        div.innerHTML = `<strong>試算：</strong> 手上餘藥 <span class="highlight">${res.hand}</span> 天 / 箋剩餘總量 ${res.total} 天 <br>狀態：${res.status}`;
     }
 
     function saveRecord() {
         const start = document.getElementById("startDate").value;
+        if(!start) return alert("請輸入日期");
         const used = parseInt(document.getElementById("usedTimes").value);
         let logs = [];
         for(let i=0; i<used; i++) logs.push(start);
-        const record = {
-            id: Date.now(),
-            user: document.getElementById("userName").value || "本人",
+        records.push({
+            id: Date.now(), user: document.getElementById("userName").value || "本人",
             med: document.getElementById("medName").value || "未註記",
-            startDate: start,
-            days: parseInt(document.getElementById("days").value),
+            startDate: start, days: parseInt(document.getElementById("days").value),
             totalTimes: parseInt(document.getElementById("totalTimes").value),
-            logs: logs,
-            isEditing: false
-        };
-        records.push(record);
+            logs: logs, isEditing: false
+        });
         sync();
     }
 
-    function sync() { localStorage.setItem("family_med_v9", JSON.stringify(records)); renderRecords(); }
+    function sync() { localStorage.setItem("family_med_v11", JSON.stringify(records)); renderRecords(); }
+
+    function updateRecord(id) {
+        const card = document.querySelector(`[data-id="${id}"]`);
+        const r = records.find(rec => rec.id === id);
+        r.user = card.querySelector(".edit-user").value;
+        r.med = card.querySelector(".edit-med").value;
+        r.startDate = card.querySelector(".edit-date").value;
+        r.days = parseInt(card.querySelector(".edit-days").value);
+        r.totalTimes = parseInt(card.querySelector(".edit-total").value);
+        
+        const newLogs = [];
+        card.querySelectorAll(".edit-log-date").forEach(input => newLogs.push(input.value));
+        r.logs = newLogs;
+        
+        r.isEditing = false;
+        sync();
+    }
 
     function renderRecords() {
         const container = document.getElementById("records");
         container.innerHTML = "";
         const simDateStr = document.getElementById("simDate").value;
-        const sorted = [...records].sort((a,b) => new Date(b.startDate) - new Date(a.startDate));
-
-        sorted.forEach(r => {
+        [...records].sort((a,b) => new Date(b.startDate) - new Date(a.startDate)).forEach(r => {
             const calc = calculateSmart(r, simDateStr);
             const div = document.createElement("div");
             div.className = "card";
             div.setAttribute("data-id", r.id);
-
             if (r.isEditing) {
-                let logsHtml = r.logs.map((d, i) => `<div class="log-edit-item">第${i+1}次: <input type="date" class="edit-log-date" value="${d}"> <button onclick="this.parentElement.remove()">✕</button></div>`).join('');
+                let logsHtml = r.logs.map((d, i) => `
+                    <div class="log-edit-item">
+                        第${i+1}次: <input type="date" class="edit-log-date" value="${d}">
+                        <button class="btn-sm" onclick="this.parentElement.remove()" style="background:#ffcdd2;color:#c62828">✕</button>
+                    </div>`).join('');
                 div.innerHTML = `<div class="edit-mode-box">
-                    <input type="text" class="edit-user" value="${r.user}"> <input type="text" class="edit-med" value="${r.med}">
-                    <input type="date" class="edit-date" value="${r.startDate}"> <input type="number" class="edit-days" value="${r.days}">
-                    <input type="number" class="edit-total" value="${r.totalTimes}">
+                    <label>對象/藥名</label><div class="grid"><input type="text" class="edit-user" value="${r.user}"><input type="text" class="edit-med" value="${r.med}"></div>
+                    <label>開立日/單次天數</label><div class="grid"><input type="date" class="edit-date" value="${r.startDate}"><input type="number" class="edit-days" value="${r.days}"></div>
+                    <label>總次數</label><input type="number" class="edit-total" value="${r.totalTimes}">
                     <div style="margin-top:10px">${logsHtml}</div>
-                    <div class="actions"><button class="btn-sm btn-save" onclick="updateRecord(${r.id})">儲存</button><button class="btn-sm" onclick="toggleEdit(${r.id})">取消</button></div>
+                    <div class="actions"><button class="btn-sm btn-save" onclick="updateRecord(${r.id})">確認儲存</button><button class="btn-sm" onclick="toggleEdit(${r.id})">取消</button></div>
                 </div>`;
             } else {
                 div.innerHTML = `
-                    <div class="card-header">
-                        <div><span class="user-tag">${r.user}</span> <b>${r.med}</b></div>
-                        <div>
-                            <button class="btn-sm btn-edit" onclick="toggleEdit(${r.id})">修改</button>
-                            <button class="btn-sm btn-del" onclick="deleteRecord(${r.id})">刪除</button>
-                        </div>
-                    </div>
-                    <div class="info-grid">
-                        <div class="full">🗓️ 起迄日：<b style="font-family:monospace">${calc.range}</b></div>
-                        <div class="full">📦 領藥紀錄：${r.logs.map(l=>`<span class="log-tag">${l}</span>`).join('')} <button class="btn-sm" onclick="addLog(${r.id})">+ 領藥</button></div>
-                        <div>🔁 進度：${calc.count} / ${r.totalTimes} 次</div>
-                        <div>⏳ 狀態：<span class="status-badge ${calc.isLawExpired ? 'expired' : 'active'}">${calc.statusText}</span></div>
-                        <div class="highlight">🏠 手上餘藥：${calc.hand} 天</div>
-                        <div style="font-weight:bold; color:#666">📜 箋剩餘總量：${calc.total} 天</div>
-                    </div>`;
+                <div class="card-header">
+                    <div><span class="user-tag">${r.user}</span> <b>${r.med}</b></div>
+                    <div><button class="btn-sm" onclick="toggleEdit(${r.id})">修改</button> <button class="btn-sm" onclick="deleteRecord(${r.id})" style="background:#e74c3c;color:white">刪除</button></div>
+                </div>
+                <div class="info-grid">
+                    <div class="full">🗓️ 起迄日：<b style="font-family:monospace">${calc.range}</b></div>
+                    <div class="full">📦 領藥紀錄：${r.logs.map(l=>`<span class="log-tag">${l}</span>`).join('')} <button class="btn-sm" onclick="addLog(${r.id})" style="background:#e3f2fd;color:#1976d2">+ 領藥</button></div>
+                    <div>🔁 進度：${calc.count} / ${r.totalTimes} 次</div>
+                    <div>⏳ 狀態：<span class="status-badge ${calc.isLawExpired ? 'expired' : 'active'}">${calc.status}</span></div>
+                    <div class="highlight">🏠 手上餘藥：${calc.hand} 天</div>
+                    <div style="font-weight:bold; color:#666">📜 箋剩餘總量：${calc.total} 天</div>
+                </div>`;
             }
             container.appendChild(div);
         });
@@ -208,27 +215,13 @@
     function addLog(id) {
         const r = records.find(r => r.id === id);
         const calc = calculateSmart(r, document.getElementById('simDate').value);
-        if (calc.isLawExpired) return alert("此慢箋已超過 90 天法律效期，不可再領藥！");
-        if (r.logs.length >= r.totalTimes) return alert("領藥次數已領完");
-        const date = prompt("領藥日期:", new Date().toISOString().split('T')[0]);
+        if (calc.isLawExpired) return alert("慢箋已過期，無法領藥！");
+        if (r.logs.length >= r.totalTimes) return alert("次數已領完！");
+        const date = prompt("領藥日期:", document.getElementById('simDate').value);
         if (date) { r.logs.push(date); sync(); }
     }
-    function updateRecord(id) {
-        const card = document.querySelector(`[data-id="${id}"]`);
-        const r = records.find(r => r.id === id);
-        r.user = card.querySelector(".edit-user").value;
-        r.med = card.querySelector(".edit-med").value;
-        r.startDate = card.querySelector(".edit-date").value;
-        r.days = parseInt(card.querySelector(".edit-days").value);
-        r.totalTimes = parseInt(card.querySelector(".edit-total").value);
-        const newLogs = [];
-        card.querySelectorAll(".edit-log-date").forEach(input => newLogs.push(input.value));
-        r.logs = newLogs;
-        r.isEditing = false;
-        sync();
-    }
     function toggleEdit(id) { records.forEach(r => { if(r.id === id) r.isEditing = !r.isEditing; }); renderRecords(); }
-    function deleteRecord(id) { if(confirm("確定刪除？")) { records = records.filter(r => r.id !== id); sync(); } }
+    function deleteRecord(id) { if(confirm("確定刪除此紀錄？")) { records = records.filter(r => r.id !== id); sync(); } }
     renderRecords();
 </script>
 </body>
