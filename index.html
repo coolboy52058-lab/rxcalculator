@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>家庭慢箋管理系統 v12 - 經典圖示整合版</title>
+    <title>家庭慢箋管理系統 v12 - 即時試算版</title>
     <style>
         :root { --primary: #2c3e50; --accent: #3498db; --success: #27ae60; --danger: #e74c3c; --warning: #f39c12; --light: #f8f9fa; }
         body { font-family: "PingFang TC", "Microsoft JhengHei", sans-serif; background: #f0f2f5; color: #333; padding: 15px; max-width: 750px; margin: 0 auto; }
@@ -12,7 +12,8 @@
         .group-box { border-top: 5px solid var(--accent); position: relative; }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         label { display: block; margin-top: 10px; font-weight: bold; font-size: 0.85em; color: #666; }
-        input { width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+        input { width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; transition: border 0.3s; }
+        input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 5px rgba(52, 152, 219, 0.3); }
         .btn-row { display: flex; gap: 10px; margin-top: 15px; }
         button { flex: 1; cursor: pointer; border: none; border-radius: 8px; padding: 12px; font-weight: bold; }
         .btn-save { background: var(--success); color: white; }
@@ -44,27 +45,28 @@
     <div class="grid">
         <div>
             <label>對象 / 藥名</label>
-            <input type="text" id="userName" placeholder="姓名">
-            <input type="text" id="medName" placeholder="藥名" style="margin-top:5px">
+            <input type="text" id="userName" placeholder="姓名" oninput="runSimulation()">
+            <input type="text" id="medName" placeholder="藥名" style="margin-top:5px" oninput="runSimulation()">
         </div>
         <div>
             <label>模擬試算日期 (預設今天)</label>
-            <input type="date" id="simDate">
+            <input type="date" id="simDate" oninput="runSimulation()">
         </div>
     </div>
     <div class="grid">
-        <div><label>第1次領藥日</label><input type="date" id="startDate"></div>
-        <div><label>單次開立天數</label><input type="number" id="days" value="30"></div>
+        <div><label>第1次領藥日</label><input type="date" id="startDate" oninput="runSimulation()"></div>
+        <div><label>單次開立天數</label><input type="number" id="days" value="30" oninput="runSimulation()"></div>
     </div>
     <div class="grid">
-        <div><label>總領藥次數</label><input type="number" id="totalTimes" value="3"></div>
-        <div><label>初始已領次數</label><input type="number" id="usedTimes" value="1"></div>
+        <div><label>總領藥次數</label><input type="number" id="totalTimes" value="3" oninput="runSimulation()"></div>
+        <div><label>初始已領次數</label><input type="number" id="usedTimes" value="1" oninput="runSimulation()"></div>
     </div>
     <div class="btn-row">
-        <button class="btn-calc" onclick="runSimulation()">🧪 僅試算不儲存</button>
         <button class="btn-save" onclick="saveRecord()">💾 儲存紀錄</button>
     </div>
-    <div id="tempResult" style="display:none; margin-top:15px; padding:15px; background:#fffde7; border:1px solid #ffd54f; border-radius:8px;"></div>
+    <div id="tempResult" style="margin-top:15px; padding:15px; background:#fffde7; border:1px solid #ffd54f; border-radius:8px;">
+        請輸入資訊以進行即時試算...
+    </div>
 </div>
 
 <div id="records"></div>
@@ -74,6 +76,9 @@
     document.getElementById('startDate').valueAsDate = new Date();
     document.getElementById('simDate').valueAsDate = new Date();
 
+    // 初始化時先跑一次預設試算
+    window.onload = () => { runSimulation(); renderRecords(); };
+
     function calculateSmart(r, targetDateStr) {
         const simDate = new Date(targetDateStr);
         simDate.setHours(0,0,0,0);
@@ -82,6 +87,8 @@
         
         let handAmount = 0;
         const sortedLogs = [...r.logs].sort((a,b) => new Date(a) - new Date(b));
+        if (sortedLogs.length === 0) return { hand: 0, total: 0, isLawExpired: false, status: "無紀錄", range: "N/A", count: 0 };
+        
         let lastDate = new Date(sortedLogs[0]);
         lastDate.setHours(0,0,0,0);
 
@@ -123,17 +130,29 @@
     }
 
     function runSimulation() {
+        const startDate = document.getElementById("startDate").value;
+        const days = parseInt(document.getElementById("days").value) || 0;
+        const totalTimes = parseInt(document.getElementById("totalTimes").value) || 0;
+        const usedTimes = parseInt(document.getElementById("usedTimes").value) || 0;
+        const simDate = document.getElementById("simDate").value;
+
+        if(!startDate) return;
+
         const r = {
-            startDate: document.getElementById("startDate").value,
-            days: parseInt(document.getElementById("days").value),
-            totalTimes: parseInt(document.getElementById("totalTimes").value),
-            logs: Array(parseInt(document.getElementById("usedTimes").value)).fill(document.getElementById("startDate").value)
+            startDate: startDate,
+            days: days,
+            totalTimes: totalTimes,
+            logs: Array(usedTimes).fill(startDate)
         };
-        if(!r.startDate) return;
-        const res = calculateSmart(r, document.getElementById("simDate").value);
+
+        const res = calculateSmart(r, simDate);
         const div = document.getElementById("tempResult");
-        div.style.display = "block";
-        div.innerHTML = `<strong>試算結果：</strong> 手上餘藥 <span class="highlight">${res.hand}</span> 天 / 箋剩餘總量 ${res.total} 天 <br>狀態：${res.status}`;
+        const user = document.getElementById("userName").value || "某人";
+        const med = document.getElementById("medName").value || "某藥物";
+
+        div.innerHTML = `<strong>即時試算 [${user} - ${med}]：</strong> <br>
+            🏠 手上餘藥 <span class="highlight">${res.hand}</span> 天 / 📜 箋剩餘總量 ${res.total} 天 <br>
+            ⏳ 狀態：${res.status}`;
     }
 
     function saveRecord() {
@@ -161,6 +180,7 @@
         const form = document.getElementById("inputForm");
         form.style.boxShadow = "0 0 20px var(--accent)";
         setTimeout(() => form.style.boxShadow = "0 4px 12px rgba(0,0,0,0.1)", 800);
+        runSimulation(); // 續開時立即觸發試算更新
     }
 
     function renderRecords() {
@@ -168,7 +188,6 @@
         container.innerHTML = "";
         const simDateStr = document.getElementById("simDate").value;
 
-        // 分組
         const groups = {};
         records.forEach(r => {
             const key = `${r.user}-${r.med}`;
@@ -176,7 +195,6 @@
             groups[key].push(r);
         });
 
-        // 渲染每個群組
         Object.keys(groups).sort().forEach(key => {
             const groupRecords = groups[key].sort((a,b) => new Date(b.startDate) - new Date(a.startDate));
             const [user, med] = key.split('-');
@@ -222,7 +240,7 @@
                         <div><button class="btn-sm" onclick="toggleEdit(${r.id})">修改</button> <button class="btn-sm" onclick="deleteRecord(${r.id})" style="background:#e74c3c;color:white">刪除</button></div>
                     </div>
                     <div class="info-grid">
-                        <div class="full">📦 領藥紀錄：${r.logs.map(l=>`<span class="log-tag">${l}</span>`).join('')} <button class="btn-sm" onclick="addLog(${r.id})" style="background:#e3f2fd;color:#1976d2">+ 領藥</button></div>
+                        <div class="full">📦 領藥紀錄：${r.logs.map(l=>`<span class="log-tag">${l}</span>`).join('')} <button class="btn-sm" onclick="addLog(${r.id})" style="background:#e3f2fd;color:#1976d2; border:1px solid #bbdefb">+ 領藥</button></div>
                         <div>🔁 進度：${calc.count} / ${r.totalTimes} 次</div>
                         <div>⏳ 狀態：<span class="status-badge ${calc.isLawExpired ? 'expired' : 'active'}">${calc.status}</span></div>
                         <div class="highlight">🏠 手上餘藥：${calc.hand} 天</div>
@@ -259,7 +277,6 @@
         r.isEditing = false;
         sync();
     }
-    renderRecords();
 </script>
 </body>
 </html>
