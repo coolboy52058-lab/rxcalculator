@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>家庭慢箋管理系統 v12 - 手動更新版</title>
+    <title>家庭慢箋管理系統 v12 - 修正更新按鈕版</title>
     <style>
         :root { --primary: #2c3e50; --accent: #3498db; --success: #27ae60; --danger: #e74c3c; --warning: #f39c12; --light: #f8f9fa; }
         body { font-family: "PingFang TC", "Microsoft JhengHei", sans-serif; background: #f0f2f5; color: #333; padding: 15px; max-width: 750px; margin: 0 auto; }
@@ -18,7 +18,9 @@
         button:active { transform: scale(0.98); }
         .btn-save { background: var(--success); color: white; }
         .btn-calc { background: var(--accent); color: white; }
-        .btn-refresh { background: var(--primary); color: white; margin-top: 10px; width: 100%; }
+        /* 醒目的更新按鈕 */
+        .btn-refresh { background: #34495e; color: white; margin-top: 10px; padding: 15px; width: 100%; border: 2px solid #2c3e50; font-size: 1.1em; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .btn-refresh:hover { background: #2c3e50; }
         .btn-renew { background: #e3f2fd; color: #1976d2; padding: 4px 10px; font-size: 0.85em; flex: none; border-radius: 6px; border: 1px solid #bbdefb; }
         
         .card { background: white; border-radius: 12px; padding: 18px; margin-bottom: 15px; border-left: 6px solid #bdc3c7; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
@@ -50,12 +52,13 @@
             <input type="text" id="medName" placeholder="藥名" style="margin-top:5px">
         </div>
         <div>
-            <label>模擬試算日期 (鎖定後點更新)</label>
+            <label>模擬試算日期</label>
             <input type="date" id="simDate">
             <button class="btn-refresh" onclick="renderRecords()">🔄 更新下方圖卡資訊</button>
         </div>
     </div>
-    <div class="grid">
+    
+    <div class="grid" style="margin-top:15px">
         <div><label>第1次領藥日</label><input type="date" id="startDate"></div>
         <div><label>單次開立天數</label><input type="number" id="days" value="30"></div>
     </div>
@@ -245,7 +248,8 @@
         const date = prompt("領藥日期:", document.getElementById('simDate').value);
         if (date) { r.logs.push(date); sync(); }
     }
-    function toggleEdit(id) { records.forEach(r => { if(r.id === id) r.isEditing = !r.isEditing; }); renderRecords(); }
+    function toggleEdit(id) { records.forEach(r => { if(r.id === id) r.isEditing = !r.id === id ? r.isEditing : !r.isEditing; }); // 修正邏輯
+        records.forEach(r => { if(r.id === id) r.isEditing = !r.isEditing; }); renderRecords(); }
     function deleteRecord(id) { if(confirm("確定刪除此紀錄？")) { records = records.filter(r => r.id !== id); sync(); } }
     function updateRecord(id) {
         const card = document.querySelector(`[onclick="updateRecord(${id})"]`).closest('.card');
