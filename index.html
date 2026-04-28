@@ -3,59 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>家庭慢箋管理系統 v19 - 細項刪除強化版</title>
+    <title>家庭慢箋管理系統 v14 - 90天效期精準版</title>
     <style>
         :root { --primary: #2c3e50; --accent: #3498db; --success: #27ae60; --danger: #e74c3c; --warning: #f39c12; --light: #f4f7f9; --text: #2d3748; }
         body { font-family: "PingFang TC", "Microsoft JhengHei", sans-serif; background: var(--light); color: var(--text); padding: 15px; max-width: 800px; margin: 0 auto; line-height: 1.6; }
-        h2 { text-align: center; color: var(--primary); margin-bottom: 25px; font-weight: 800; }
+        h2 { text-align: center; color: var(--primary); margin-bottom: 25px; font-size: 1.6em; font-weight: 800; }
         
+        /* 區塊容器 */
         .box { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); margin-bottom: 25px; border: 1px solid #edf2f7; }
         .group-box { border-top: 6px solid var(--accent); position: relative; }
         
+        /* 表單與輸入 */
+        .section-title { font-size: 1.1em; font-weight: bold; color: var(--primary); margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         label { display: block; font-weight: bold; font-size: 0.9em; color: #718096; margin-bottom: 5px; }
-        input { width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 10px; box-sizing: border-box; font-size: 16px; }
+        input { width: 100%; padding: 14px; border: 2px solid #e2e8f0; border-radius: 12px; box-sizing: border-box; font-size: 16px; transition: 0.3s; }
+        input:focus { border-color: var(--accent); outline: none; background: #f0f9ff; }
         
-        button { cursor: pointer; border: none; border-radius: 12px; font-weight: bold; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
-        button:active { transform: scale(0.96); }
+        /* 按鈕風格 */
+        button { cursor: pointer; border: none; border-radius: 12px; font-weight: bold; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
+        button:active { transform: scale(0.95); }
         
-        .btn-main { padding: 16px; font-size: 1.05em; width: 100%; margin-top: 10px; }
-        .btn-save { background: var(--success); color: white; }
+        .btn-main { padding: 16px; font-size: 1.05em; width: 100%; }
+        .btn-save { background: var(--success); color: white; box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3); }
         .btn-calc { background: white; color: var(--accent); border: 2px solid var(--accent); }
-        .btn-refresh { background: var(--primary); color: white; padding: 16px; width: 100%; margin-top: 10px; font-size: 1.1em; }
+        .btn-refresh { background: var(--primary); color: white; padding: 16px; font-size: 1.1em; margin-top: 10px; width: 100%; }
+        .btn-renew { background: #ebf8ff; color: #2b6cb0; padding: 6px 14px; font-size: 0.9em; border: 1px solid #bee3f8; }
+        .btn-sm { padding: 8px 16px; font-size: 0.9em; border-radius: 8px; }
+        .btn-add-log { background: #e6fffa; color: #2c7a7b; border: 1px solid #b2f5ea; }
         
-        .btn-renew { background: #ebf8ff; color: #2b6cb0; padding: 6px 14px; font-size: 0.85em; border: 1px solid #bee3f8; margin-top: 10px; }
-        
-        .card { background: white; border-radius: 16px; padding: 20px; margin-bottom: 15px; border: 1px solid #e2e8f0; transition: 0.3s; }
+        /* 卡片與資訊 */
+        .card { background: white; border-radius: 16px; padding: 20px; margin-bottom: 15px; border: 1px solid #e2e8f0; transition: 0.3s; position: relative; }
         .card.active-card { border-left: 8px solid var(--accent); }
-        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #f0f2f5; padding-bottom: 10px; }
+        .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }
         
         .user-tag { background: #edf2f7; color: #2d3748; padding: 4px 12px; border-radius: 8px; font-size: 0.9em; font-weight: bold; }
-        .med-name { font-size: 1.2em; font-weight: 800; color: var(--primary); margin-left: 8px; }
+        .med-name { font-size: 1.25em; font-weight: 900; color: var(--primary); margin-left: 8px; }
         .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         .full { grid-column: span 2; }
-        .highlight { color: #e53e3e; font-weight: 800; }
+        .highlight-large { color: #e53e3e; font-size: 1.3em; font-weight: 800; }
         
-        .status-badge { padding: 4px 10px; border-radius: 6px; font-size: 0.85em; font-weight: bold; }
-        .expired { background: #fff5f5; color: #c53030; }
-        .active { background: #f0fff4; color: #2f855a; }
+        .status-badge { padding: 4px 12px; border-radius: 8px; font-size: 0.9em; font-weight: bold; }
+        .expired { background: #fff5f5; color: #c53030; border: 1px solid #feb2b2; }
+        .active { background: #f0fff4; color: #2f855a; border: 1px solid #c6f6d5; }
         
         .total-hand-badge { background: #fffaf0; color: #c05621; padding: 8px 16px; border-radius: 12px; font-weight: 800; border: 1px solid #feebc8; }
         .log-tag { display: inline-block; background: #f7fafc; border: 1px solid #e2e8f0; padding: 3px 8px; border-radius: 6px; margin: 2px; font-size: 0.85em; }
-        .btn-sm { padding: 8px 14px; font-size: 0.85em; border-radius: 8px; }
-        
-        /* 編輯模式強化 */
-        .edit-box { background: #fdfdfd; padding: 15px; border: 2px dashed #cbd5e0; border-radius: 15px; }
-        .log-edit-item { background: #f1f5f9; padding: 10px; border-radius: 8px; margin-top: 5px; display: flex; align-items: center; gap: 8px; }
-        .log-edit-item label { min-width: 50px; flex-shrink: 0; }
-        .btn-del-log { background: #fed7d7; color: #c53030; width: 35px; height: 35px; border-radius: 8px; font-size: 14px; flex-shrink: 0; }
+
+        @media (max-width: 480px) { .grid, .info-grid { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
 
-<h2>👨‍👩‍👧‍👦 家庭慢箋管理系統 v19</h2>
+<h2>👨‍👩‍👧‍👦 家庭慢箋管理系統 v14</h2>
 
 <div class="box">
+    <div class="section-title">🔍 模擬與更新</div>
     <div class="grid">
         <div>
             <label>對象 / 藥名</label>
@@ -63,63 +66,83 @@
             <input type="text" id="medName" placeholder="藥名" style="margin-top:8px">
         </div>
         <div>
-            <label>模擬試算日期</label>
+            <label>模擬基準日 (測試範例請改 6/18)</label>
             <input type="date" id="simDate">
-            <button class="btn-refresh" onclick="renderRecords()">🔄 更新圖卡資訊</button>
+            <button class="btn-refresh" onclick="renderRecords()">🔄 更新下方資訊</button>
         </div>
     </div>
 </div>
 
 <div class="box">
+    <div class="section-title">➕ 建立新慢箋</div>
     <div class="grid">
         <div><label>第1次領藥日</label><input type="date" id="startDate"></div>
         <div><label>單次開立天數</label><input type="number" id="days" value="30"></div>
     </div>
-    <div class="grid" style="margin-top:10px;">
+    <div class="grid">
         <div><label>總領藥次數</label><input type="number" id="totalTimes" value="3"></div>
         <div><label>初始已領次數</label><input type="number" id="usedTimes" value="1"></div>
     </div>
-    <div class="btn-row">
+    <div class="btn-row" style="margin-top:20px;">
         <button class="btn-calc btn-main" onclick="runSimulation()">🧪 試算不儲存</button>
         <button class="btn-save btn-main" onclick="saveRecord()">💾 儲存紀錄</button>
     </div>
-    <div id="tempResult" style="display:none; margin-top:20px; padding:15px; border-radius:12px; background:#fffaf0; text-align:center; border:1px solid #feebc8;"></div>
+    <div id="tempResult" style="display:none; margin-top:20px; padding:15px; border-radius:12px; background:#fffaf0; text-align:center;"></div>
 </div>
 
 <div id="records"></div>
 
 <script>
-    let records = JSON.parse(localStorage.getItem("family_med_v19")) || [];
+    let records = JSON.parse(localStorage.getItem("family_med_v14")) || [];
     document.getElementById('startDate').valueAsDate = new Date();
     document.getElementById('simDate').valueAsDate = new Date();
 
-    function calculateV11(r, targetDateStr) {
+    function calculateSmart(r, targetDateStr) {
         const simDate = new Date(targetDateStr);
         simDate.setHours(0,0,0,0);
         const start = new Date(r.startDate);
         start.setHours(0,0,0,0);
         
+        // 修正效期邏輯：開立日當天算第1天，效期為 90 天
         const endDate = new Date(start);
-        endDate.setDate(endDate.getDate() + 89); 
+        endDate.setDate(endDate.getDate() + 89); // 範例：3/20 + 89天 = 6/17
         endDate.setHours(23,59,59,999);
 
-        const diffTime = simDate.getTime() - start.getTime();
-        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        let handAmount = 0;
+        const sortedLogs = [...r.logs].sort((a,b) => new Date(a) - new Date(b));
+        if (sortedLogs.length === 0) return { hand: 0, total: 0, isExpired: false, status: "無紀錄", range: "N/A", count: 0 };
         
-        const totalMedDays = r.logs.length * r.days;
-        let hand = totalMedDays - diffDays;
-        if (hand < 0) hand = 0;
+        let lastDate = new Date(sortedLogs[0]);
+        lastDate.setHours(0,0,0,0);
 
+        for(let i=0; i<sortedLogs.length; i++){
+            const current = new Date(sortedLogs[i]);
+            current.setHours(0,0,0,0);
+            if(i > 0) {
+                let diff = Math.floor((current - lastDate)/(1000*60*60*24));
+                handAmount = Math.max(0, handAmount - diff);
+            }
+            handAmount += r.days;
+            lastDate = current;
+        }
+        
+        const gapToSim = Math.floor((simDate - lastDate)/(1000*60*60*24));
+        const finalHand = Math.max(0, handAmount - gapToSim);
+
+        // 過期判定：超過 90 天效期
         const isExpired = simDate > endDate;
+
         const format = (d) => d.getFullYear() + "/" + String(d.getMonth()+1).padStart(2,'0') + "/" + String(d.getDate()).padStart(2,'0');
         
+        let statusStr = isExpired ? "❌ 慢箋已過期" : (finalHand > 0 ? "服用中" : "⚠️ 藥已用罄");
+
         return {
-            hand: isExpired ? 0 : hand,
-            totalRemain: isExpired ? 0 : Math.max(0, (r.totalTimes - r.logs.length) * r.days),
+            hand: isExpired ? 0 : finalHand,
+            total: isExpired ? 0 : Math.max(0, (r.totalTimes - sortedLogs.length) * r.days),
             isExpired: isExpired,
-            status: isExpired ? "慢箋已過期" : (hand > 0 ? "服用中" : "藥已用罄"),
+            status: statusStr,
             range: `${format(start)} - ${format(endDate)}`,
-            count: r.logs.length
+            count: sortedLogs.length
         };
     }
 
@@ -131,27 +154,28 @@
             totalTimes: parseInt(document.getElementById("totalTimes").value),
             logs: Array(parseInt(document.getElementById("usedTimes").value)).fill(startVal)
         };
-        const res = calculateV11(r, document.getElementById("simDate").value);
+        const res = calculateSmart(r, document.getElementById("simDate").value);
         const div = document.getElementById("tempResult");
         div.style.display = "block";
-        div.innerHTML = `<strong>試算結果：手上餘藥 <span class="highlight">${res.hand}</span> 天</strong><br><small>狀態：${res.status}</small>`;
+        div.innerHTML = `<strong>🏠 預估餘藥：<span class="highlight-large">${res.hand}</span> 天</strong><br><small>狀態：${res.status}</small>`;
     }
 
     function saveRecord() {
         const start = document.getElementById("startDate").value;
         if(!start) return alert("請輸入日期");
-        const used = parseInt(document.getElementById("usedTimes").value);
         records.push({
             id: Date.now(), user: document.getElementById("userName").value || "本人",
             med: document.getElementById("medName").value || "未註記",
             startDate: start, days: parseInt(document.getElementById("days").value),
             totalTimes: parseInt(document.getElementById("totalTimes").value),
-            logs: Array(used).fill(start),
+            logs: Array(parseInt(document.getElementById("usedTimes").value)).fill(start),
             isEditing: false
         });
         sync();
         document.getElementById("tempResult").style.display = "none";
     }
+
+    function sync() { localStorage.setItem("family_med_v14", JSON.stringify(records)); renderRecords(); }
 
     function fastRenew(user, med) {
         document.getElementById("userName").value = user;
@@ -159,44 +183,9 @@
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    function sync() { localStorage.setItem("family_med_v19", JSON.stringify(records)); renderRecords(); }
-
     function toggleEdit(id) {
-        records.forEach(r => { if(r.id === id) r.isEditing = !r.isEditing; });
-        renderRecords();
-    }
-
-    // 刪除特定細項
-    function removeLogItem(btn) {
-        const item = btn.closest('.log-edit-item');
-        const container = item.parentNode;
-        const id = container.id.split('-').pop();
-        item.remove();
-        
-        // 更新顯示的次數標籤
-        container.querySelectorAll('.log-edit-item').forEach((div, idx) => {
-            div.querySelector('label').innerText = `第 ${idx + 1} 次`;
-        });
-        
-        // 更新「已領次數」數值
-        const card = container.closest('.edit-box');
-        card.querySelector('.edit-used').value = container.querySelectorAll('.log-edit-item').length;
-    }
-
-    function updateLogInputs(id, newCount) {
-        const container = document.getElementById(`edit-logs-container-${id}`);
-        const currentInputs = container.querySelectorAll('.log-edit-item').length;
-        const diff = newCount - currentInputs;
-        if (diff > 0) {
-            for(let i=0; i<diff; i++) {
-                const div = document.createElement('div');
-                div.className = 'log-edit-item';
-                div.innerHTML = `<label>第 ${currentInputs + i + 1} 次</label><input type="date" class="edit-log-date" value="${document.getElementById('simDate').value}"><button class="btn-del-log" onclick="removeLogItem(this)">❌</button>`;
-                container.appendChild(div);
-            }
-        } else if (diff < 0) {
-            for(let i=0; i<Math.abs(diff); i++) { container.removeChild(container.lastChild); }
-        }
+        const r = records.find(rec => rec.id === id);
+        if(r) { r.isEditing = !r.isEditing; renderRecords(); }
     }
 
     function renderRecords() {
@@ -215,43 +204,23 @@
             const groupRecords = groups[key].sort((a,b) => new Date(b.startDate) - new Date(a.startDate));
             const [user, med] = key.split('-');
             let totalHand = 0;
-            groupRecords.forEach(r => totalHand += calculateV11(r, simDateStr).hand);
+            groupRecords.forEach(r => totalHand += calculateSmart(r, simDateStr).hand);
 
             const groupDiv = document.createElement("div");
             groupDiv.className = "box group-box";
-            groupDiv.innerHTML = `
-                <div class="card-header">
-                    <div>
-                        <span class="user-tag">${user}</span><span class="med-name">${med}</span><br>
-                        <button class="btn-renew" onclick="fastRenew('${user}', '${med}')">＋ 續開舊箋</button>
-                    </div>
-                    <div class="total-hand-badge">總餘藥：${totalHand} 天</div>
-                </div>
-                <div id="sub-${key}"></div>
-            `;
+            groupDiv.innerHTML = `<div class="card-header"><div><span class="user-tag">${user}</span><span class="med-name">${med}</span><br><button class="btn-renew" onclick="fastRenew('${user}', '${med}')" style="margin-top:10px;">＋ 續開舊箋</button></div><div class="total-hand-badge">🏠 總餘藥：${totalHand} 天</div></div><div id="sub-${key}"></div>`;
 
             const subContainer = groupDiv.querySelector(`#sub-${key}`);
             groupRecords.forEach(r => {
-                const calc = calculateV11(r, simDateStr);
+                const calc = calculateSmart(r, simDateStr);
                 const card = document.createElement("div");
                 card.className = `card ${!calc.isExpired && calc.hand > 0 ? 'active-card' : ''}`;
                 
                 if (r.isEditing) {
-                    let logsEditHtml = r.logs.map((date, index) => `<div class="log-edit-item"><label>第 ${index + 1} 次</label><input type="date" class="edit-log-date" value="${date}"><button class="btn-del-log" onclick="removeLogItem(this)">❌</button></div>`).join('');
-                    card.innerHTML = `<div class="edit-box"><label>對象 / 藥名</label><div class="grid"><input type="text" class="edit-user" value="${r.user}"><input type="text" class="edit-med" value="${r.med}"></div><div class="grid" style="margin-top:10px;"><div><label>開立日</label><input type="date" class="edit-date" value="${r.startDate}"></div><div><label>單次天數</label><input type="number" class="edit-days" value="${r.days}"></div></div><div class="grid" style="margin-top:10px;"><div><label>總次數</label><input type="number" class="edit-total" value="${r.totalTimes}"></div><div><label>已領次數</label><input type="number" class="edit-used" value="${r.logs.length}" oninput="updateLogInputs(${r.id}, this.value)"></div></div><div style="margin-top:15px;"><label>📝 修正領藥日：</label><div id="edit-logs-container-${r.id}">${logsEditHtml}</div></div><div class="btn-row" style="margin-top:15px;"><button class="btn-save btn-main" onclick="updateRecord(${r.id}, this)">✅ 儲存修改</button><button class="btn-sm" style="background:#edf2f7; width:100%; margin-top:5px;" onclick="toggleEdit(${r.id})">取消</button></div></div>`;
+                    let logsHtml = r.logs.map((d, i) => `<div style="margin-top:8px;"><label>第 ${i+1} 次領藥日</label><input type="date" class="edit-log-date" value="${d}"></div>`).join('');
+                    card.innerHTML = `<div class="grid"><input type="text" class="edit-user" value="${r.user}"><input type="text" class="edit-med" value="${r.med}"></div><div class="grid" style="margin-top:10px;"><input type="date" class="edit-date" value="${r.startDate}"><input type="number" class="edit-days" value="${r.days}"></div><div style="margin-top:10px;">${logsHtml}</div><div class="btn-row" style="margin-top:15px;"><button class="btn-save btn-sm" onclick="updateRecord(${r.id}, this)">✅ 儲存</button><button class="btn-sm" onclick="toggleEdit(${r.id})">取消</button></div>`;
                 } else {
-                    card.innerHTML = `
-                    <div class="card-header">
-                        <div><strong>起訖日：</strong> ${calc.range}</div>
-                        <div style="display:flex; gap:8px;"><button class="btn-sm" onclick="toggleEdit(${r.id})">修改</button><button class="btn-sm" style="color:var(--danger);" onclick="deleteRecord(${r.id})">刪除</button></div>
-                    </div>
-                    <div class="info-grid">
-                        <div class="full"><strong>📦 領藥紀錄：</strong> ${r.logs.map(l=>`<span class="log-tag">${l}</span>`).join('')} <button class="btn-sm" style="background:#e6fffa; color:#2c7a7b;" onclick="addLog(${r.id})">+ 領藥</button></div>
-                        <div><strong>🔁 進度：</strong> ${calc.count} / ${r.totalTimes} 次</div>
-                        <div><strong>⏳ 狀態：</strong> <span class="status-badge ${calc.isExpired ? 'expired' : 'active'}">${calc.status}</span></div>
-                        <div><strong>🏠 手上餘藥：</strong> <span class="highlight">${calc.hand} 天</span></div>
-                        <div><strong>📜 慢箋剩餘總量：</strong> ${calc.totalRemain} 天</div>
-                    </div>`;
+                    card.innerHTML = `<div class="card-header"><div><small>📅 90天效期</small><br><strong>${calc.range}</strong></div><div style="display:flex;gap:8px;"><button class="btn-sm" onclick="toggleEdit(${r.id})">修改</button><button class="btn-sm" style="color:var(--danger);" onclick="deleteRecord(${r.id})">刪除</button></div></div><div class="info-grid"><div class="full"><label>📦 領藥紀錄</label>${r.logs.map(l=>`<span class="log-tag">${l}</span>`).join('')}<button class="btn-sm btn-add-log" onclick="addLog(${r.id})">＋領藥</button></div><div><label>🔁 進度</label><strong>${calc.count} / ${r.totalTimes} 次</strong></div><div><label>⏳ 狀態</label><span class="status-badge ${calc.isExpired ? 'expired' : 'active'}">${calc.status}</span></div><div><label>🏠 本箋餘藥</label><span class="highlight-large">${calc.hand} 天</span></div><div><label>📜 剩餘總量</label><strong>${calc.total} 天</strong></div></div>`;
                 }
                 subContainer.appendChild(card);
             });
@@ -262,18 +231,17 @@
     function addLog(id) {
         const r = records.find(r => r.id === id);
         if(r.logs.length >= r.totalTimes) return alert("領取次數已滿！");
-        const date = prompt("請確認領藥日期:", document.getElementById('simDate').value);
+        const date = prompt("領藥日期:", document.getElementById('simDate').value);
         if (date) { r.logs.push(date); sync(); }
     }
     function deleteRecord(id) { if(confirm("確定刪除？")) { records = records.filter(r => r.id !== id); sync(); } }
     function updateRecord(id, btn) {
-        const card = btn.closest('.edit-box');
+        const card = btn.closest('.card');
         const r = records.find(rec => rec.id === id);
         r.user = card.querySelector(".edit-user").value;
         r.med = card.querySelector(".edit-med").value;
         r.startDate = card.querySelector(".edit-date").value;
         r.days = parseInt(card.querySelector(".edit-days").value);
-        r.totalTimes = parseInt(card.querySelector(".edit-total").value);
         const newLogs = [];
         card.querySelectorAll(".edit-log-date").forEach(input => newLogs.push(input.value));
         r.logs = newLogs;
