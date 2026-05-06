@@ -3,44 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>家庭慢箋管理系統 v21 - 真實餘藥累計版</title>
+    <title>家庭慢箋管理系統 v22 - 視覺化進度條版</title>
     <style>
         :root { --primary: #2c3e50; --accent: #3498db; --success: #27ae60; --danger: #e74c3c; --warning: #f39c12; --light: #f4f7f9; --text: #2d3748; }
-        body { font-family: "PingFang TC", "Microsoft JhengHei", sans-serif; background: var(--light); color: var(--text); padding: 15px; max-width: 800px; margin: 0 auto; }
-        h2 { text-align: center; color: var(--primary); font-weight: 800; }
+        body { font-family: "PingFang TC", "Microsoft JhengHei", sans-serif; background: var(--light); color: var(--text); padding: 15px; max-width: 800px; margin: 0 auto; line-height: 1.5; }
+        h2 { text-align: center; color: var(--primary); margin-bottom: 20px; font-weight: 800; }
+        
         .box { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); margin-bottom: 20px; border: 1px solid #edf2f7; }
         .group-box { border-top: 6px solid var(--accent); position: relative; }
+        
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         label { display: block; font-weight: bold; font-size: 0.85em; color: #718096; margin-bottom: 4px; }
-        input { width: 100%; padding: 10px; border: 2px solid #e2e8f0; border-radius: 8px; box-sizing: border-box; }
+        input { width: 100%; padding: 10px; border: 2px solid #e2e8f0; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+        
         button { cursor: pointer; border: none; border-radius: 10px; font-weight: bold; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
-        .btn-main { padding: 14px; width: 100%; margin-top: 8px; }
+        .btn-main { padding: 14px; width: 100%; margin-top: 8px; font-size: 1em; }
         .btn-save { background: var(--success); color: white; }
         .btn-calc { background: white; color: var(--accent); border: 2px solid var(--accent); }
         .btn-refresh { background: var(--primary); color: white; padding: 12px; width: 100%; margin-top: 10px; }
+        
         .btn-renew { background: #ebf8ff; color: #2b6cb0; padding: 5px 12px; font-size: 0.8em; border: 1px solid #bee3f8; margin-top: 8px; }
+        
         .card { background: white; border-radius: 12px; padding: 15px; margin-bottom: 12px; border: 1px solid #e2e8f0; }
         .active-card { border-left: 6px solid var(--accent); }
         .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #f0f2f5; padding-bottom: 8px; }
-        .user-tag { background: #edf2f7; padding: 3px 10px; border-radius: 6px; font-size: 0.85em; font-weight: bold; }
-        .med-name { font-size: 1.1em; font-weight: 800; color: var(--primary); margin-left: 5px; }
+        
+        /* 進度條樣式 */
+        .progress-container { width: 100%; background: #edf2f7; border-radius: 10px; height: 10px; margin: 12px 0 6px 0; overflow: hidden; border: 1px solid #e2e8f0; }
+        .progress-bar { height: 100%; transition: width 0.6s ease; }
+        .progress-text { display: flex; justify-content: space-between; font-size: 0.7em; color: #a0aec0; margin-bottom: 15px; }
+
+        .user-tag { background: #edf2f7; color: #2d3748; padding: 3px 10px; border-radius: 6px; font-size: 0.85em; font-weight: bold; }
+        .med-name { font-size: 1.1em; font-weight: 800; color: var(--primary); margin-left: 6px; }
         .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         .full { grid-column: span 2; }
-        .highlight { color: #e53e3e; font-weight: 800; font-size: 1.1em; }
+        .highlight { color: #e53e3e; font-weight: 800; }
+        
         .status-badge { padding: 3px 8px; border-radius: 5px; font-size: 0.8em; font-weight: bold; }
         .expired { background: #fff5f5; color: #c53030; }
         .active { background: #f0fff4; color: #2f855a; }
+        
         .total-hand-badge { background: #fffaf0; color: #c05621; padding: 6px 12px; border-radius: 10px; font-weight: 800; border: 1px solid #feebc8; }
         .log-tag { display: inline-block; background: #f7fafc; border: 1px solid #e2e8f0; padding: 2px 6px; border-radius: 5px; margin: 2px; font-size: 0.8em; }
         .btn-sm { padding: 6px 10px; font-size: 0.8em; border-radius: 6px; }
+        
         .edit-box { background: #fdfdfd; padding: 12px; border: 2px dashed #cbd5e0; border-radius: 12px; }
         .log-edit-item { background: #f1f5f9; padding: 8px; border-radius: 6px; margin-top: 5px; display: flex; align-items: center; gap: 5px; }
-        .btn-del-log { background: #fed7d7; color: #c53030; width: 30px; height: 30px; border-radius: 6px; }
+        .btn-del-log { background: #fed7d7; color: #c53030; width: 32px; height: 32px; border-radius: 6px; }
     </style>
 </head>
 <body>
 
-<h2>👨‍👩‍👧‍👦 家庭慢箋管理系統 v21</h2>
+<h2>👨‍👩‍👧‍👦 家庭慢箋管理系統 v22</h2>
 
 <div class="box">
     <div class="grid">
@@ -76,15 +90,14 @@
 <div id="records"></div>
 
 <script>
-    let records = JSON.parse(localStorage.getItem("family_med_v21")) || [];
+    let records = JSON.parse(localStorage.getItem("family_med_v22")) || [];
     document.getElementById('startDate').valueAsDate = new Date();
     document.getElementById('simDate').valueAsDate = new Date();
 
-    function calculateV21(r, targetDateStr) {
+    function calculateV22(r, targetDateStr) {
         const simDate = new Date(targetDateStr);
         simDate.setHours(0,0,0,0);
         
-        // 將領藥紀錄轉為日期對象並排序
         const logs = r.logs.map(d => {
             const dt = new Date(d);
             dt.setHours(0,0,0,0);
@@ -95,43 +108,41 @@
         const endDate = new Date(firstLogDate);
         endDate.setDate(endDate.getDate() + 89); 
 
-        // 核心邏輯：計算累積空窗天數
+        // 核心邏輯：斷藥空窗累計
         let totalGapDays = 0;
-        let currentDrugEmptyDate = new Date(logs[0]); // 第一份藥預計吃完的日期
+        let currentDrugEmptyDate = new Date(logs[0]); 
         
         for(let i=0; i < logs.length; i++) {
-            // 如果這次領藥日，比「預計藥吃完日」還要晚，代表產生了空窗
             if (i > 0 && logs[i] > currentDrugEmptyDate) {
-                const gap = Math.floor((logs[i] - currentDrugEmptyDate) / 86400000);
-                totalGapDays += gap;
+                totalGapDays += Math.floor((logs[i] - currentDrugEmptyDate) / 86400000);
             }
-            
-            // 更新藥吃完的日期：基於「實際開始吃這份藥的時間」+ 天數
-            // 如果提早領藥，就從上份吃完日開始接；如果延後領藥，就從領藥當天開始吃
             let drugStartDate = (i > 0 && logs[i] < currentDrugEmptyDate) ? currentDrugEmptyDate : logs[i];
             currentDrugEmptyDate = new Date(drugStartDate);
             currentDrugEmptyDate.setDate(currentDrugEmptyDate.getDate() + r.days);
         }
 
-        // 計算從第一天到模擬日流逝的天數
         const daysPassed = Math.floor((simDate - firstLogDate) / 86400000);
-        
-        // 餘藥 = (總給藥量 - 已流逝天數) + 補回的空窗天數
         let hand = (logs.length * r.days - daysPassed) + totalGapDays;
-        
-        // 邊界限制：餘藥不能超過「已領總量」，也不能小於 0
         hand = Math.max(0, Math.min(logs.length * r.days, hand));
+
+        // 進度條百分比 (以90天為準)
+        const progressPercent = Math.min(100, Math.max(0, (daysPassed / 90) * 100));
+        let barColor = "var(--accent)";
+        if (progressPercent > 85) barColor = "var(--danger)";
+        else if (progressPercent > 65) barColor = "var(--warning)";
 
         const isExpired = simDate > endDate;
         const format = (d) => d.getFullYear() + "/" + String(d.getMonth()+1).padStart(2,'0') + "/" + String(d.getDate()).padStart(2,'0');
         
         return {
-            hand: isExpired ? 0 : hand,
+            hand,
             totalRemain: isExpired ? 0 : Math.max(0, (r.totalTimes - logs.length) * r.days),
-            isExpired: isExpired,
+            isExpired,
             status: isExpired ? "慢箋已過期" : (hand > 0 ? "服用中" : "空窗停藥中"),
             range: `${format(firstLogDate)} - ${format(endDate)}`,
-            count: logs.length
+            count: logs.length,
+            percent: progressPercent,
+            barColor
         };
     }
 
@@ -142,10 +153,10 @@
             totalTimes: parseInt(document.getElementById("totalTimes").value),
             logs: Array(parseInt(document.getElementById("usedTimes").value)).fill(startVal)
         };
-        const res = calculateV21(r, document.getElementById("simDate").value);
+        const res = calculateV22(r, document.getElementById("simDate").value);
         const div = document.getElementById("tempResult");
         div.style.display = "block";
-        div.innerHTML = `<strong>試算：手上餘藥 <span class="highlight">${res.hand}</span> 天 / 總領藥量 ${r.logs.length * r.days} 天</strong>`;
+        div.innerHTML = `<strong>試算：手上餘藥 <span class="highlight">${res.hand}</span> 天</strong><br><small>慢箋進度：${Math.round(res.percent)}%</small>`;
     }
 
     function saveRecord() {
@@ -168,7 +179,7 @@
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    function sync() { localStorage.setItem("family_med_v21", JSON.stringify(records)); renderRecords(); }
+    function sync() { localStorage.setItem("family_med_v22", JSON.stringify(records)); renderRecords(); }
 
     function toggleEdit(id) {
         records.forEach(r => { if(r.id === id) r.isEditing = !r.isEditing; });
@@ -177,12 +188,12 @@
 
     function removeLogItem(btn) {
         const item = btn.closest('.log-edit-item');
-        const container = item.parentNode;
         item.remove();
+        const container = btn.closest('.edit-box').querySelector('[id^="edit-logs-container"]');
         container.querySelectorAll('.log-edit-item').forEach((div, idx) => {
             div.querySelector('label').innerText = `第 ${idx + 1} 次`;
         });
-        container.closest('.edit-box').querySelector('.edit-used').value = container.querySelectorAll('.log-edit-item').length;
+        btn.closest('.edit-box').querySelector('.edit-used').value = container.querySelectorAll('.log-edit-item').length;
     }
 
     function updateLogInputs(id, newCount) {
@@ -217,7 +228,7 @@
             const groupRecords = groups[key].sort((a,b) => new Date(b.startDate) - new Date(a.startDate));
             const [user, med] = key.split('-');
             let totalHandSum = 0;
-            groupRecords.forEach(r => totalHandSum += calculateV21(r, simDateStr).hand);
+            groupRecords.forEach(r => totalHandSum += calculateV22(r, simDateStr).hand);
 
             const groupDiv = document.createElement("div");
             groupDiv.className = "box group-box";
@@ -225,7 +236,7 @@
 
             const subContainer = groupDiv.querySelector(`#sub-${key}`);
             groupRecords.forEach(r => {
-                const calc = calculateV21(r, simDateStr);
+                const calc = calculateV22(r, simDateStr);
                 const card = document.createElement("div");
                 card.className = `card ${!calc.isExpired && calc.hand > 0 ? 'active-card' : ''}`;
                 
@@ -235,6 +246,10 @@
                 } else {
                     card.innerHTML = `
                     <div class="card-header"><div><strong>起訖日：</strong> ${calc.range}</div><div style="display:flex; gap:5px;"><button class="btn-sm" onclick="toggleEdit(${r.id})">修改</button><button class="btn-sm" style="color:var(--danger);" onclick="deleteRecord(${r.id})">刪除</button></div></div>
+                    
+                    <div class="progress-container"><div class="progress-bar" style="width: ${calc.percent}%; background: ${calc.barColor};"></div></div>
+                    <div class="progress-text"><span>Day 1</span><span>慢箋進度 ${Math.round(calc.percent)}%</span><span>Day 90</span></div>
+
                     <div class="info-grid">
                         <div class="full"><strong>📦 領藥紀錄：</strong> ${r.logs.map(l=>`<span class="log-tag">${l}</span>`).join('')} <button class="btn-sm" style="background:#e6fffa;" onclick="addLog(${r.id})">+ 領藥</button></div>
                         <div><strong>🔁 進度：</strong> ${calc.count} / ${r.totalTimes} 次</div>
@@ -260,7 +275,7 @@
         const card = btn.closest('.edit-box');
         const r = records.find(rec => rec.id === id);
         r.user = card.querySelector(".edit-user").value;
-        r.med = card.querySelector(".edit-med").value;
+        r.med = card.querySelector(".med-name") ? card.querySelector(".med-name").innerText : card.querySelector(".edit-med").value;
         r.startDate = card.querySelector(".edit-date").value;
         r.days = parseInt(card.querySelector(".edit-days").value);
         r.totalTimes = parseInt(card.querySelector(".edit-total").value);
